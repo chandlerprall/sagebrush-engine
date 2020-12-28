@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "build",
+    "strict": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "declaration": true,
+    "lib": ["ES2015"],
+    "target": "ES2020",
+    "module": "CommonJS"
+  },
+  "include": ["**/*.ts"]
+}
