@@ -5,15 +5,15 @@ const socket = ClientSocket({
 	path: '/ws',
 	transports: ['websocket']
 });
-socket.on('connect', function(){ console.log('connected'); socket.send({ test: 'ing' }) });
-socket.on('message', function(data){ console.log(data) });
-socket.on('disconnect', function(){ console.log('disconnected') });
+// socket.on('connect', function(){});
+// socket.on('message', function(data){});
+// socket.on('disconnect', function(){});
 
 interface SocketContextShape {
 	socket: ReturnType<typeof ClientSocket>;
 }
 
-const SocketContext = React.createContext<SocketContextShape>({ socket: undefined });
+const SocketContext = React.createContext<SocketContextShape>({ socket: undefined as any as ReturnType<typeof ClientSocket> });
 
 const socketContextValue = { socket };
 

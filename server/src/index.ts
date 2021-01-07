@@ -16,10 +16,8 @@ export function startServer() {
 		server.listen(() => resolve(server));
 
 		io.on('connection', (client: SocketIo.Server) => {
-			console.log('socket connected');
 			client.on('message', (data) => { console.log('message\n', data) });
-			client.on('disconnect', () => { /* … */ });
-			client.send({ test: 'back' })
+			client.on('disconnect', () => {});
 		});
 
 		server.on(
