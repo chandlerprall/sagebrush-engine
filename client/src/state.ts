@@ -3,19 +3,21 @@ import { ComponentType, useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 
 declare global {
-	namespace State {
-		interface Shape {
+	namespace App {
+		interface State {
 			app: {
 				currentScreen: ComponentType;
-			}
+			};
 			ui: {
-				screens: { [key: string]: ComponentType }
+				screens: { [key: string]: ComponentType };
 			};
 		}
+
+		interface Events {}
 	}
 }
 
-const store = new Store<State.Shape>({
+export const store = new Store<App.State>({
 	app: {
 		currentScreen: LoadingScreen,
 	},
@@ -24,6 +26,10 @@ const store = new Store<State.Shape>({
 			loading: LoadingScreen,
 		},
 	},
+	plugins: {
+		discovered: [],
+		loaded: [],
+	}
 });
 
 type primitive = string | number | boolean | undefined | null;
@@ -79,9 +85,8 @@ function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] 
 }
 
 export function useResource<T>(accessor: T): TypeFromAccessor<T> {
-	const store: Store<State.Shape> = (accessor as any).__store;
-	const path: string[] = (accessor as any).__path;
-	const selector = path.slice();
+	const store: Store<App.State> = (accessor as any).__store;
+	const selector: string[] = (accessor as any).__path;
 
 	const [value, setValue] = useState(() => store.getPartialState(selector));
 
@@ -96,6 +101,32 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 	}, []);
 
 	return value;
+}
+
+export function getResource<T>(accessor: T): TypeFromAccessor<T> {
+	const store: Store<App.State> = (accessor as any).__store;
+	const selector: string[] = (accessor as any).__path;
+	return store.getPartialState(selector);
+}
+
+export function setResource<T>(accessor: T, value: TypeFromAccessor<T>) {
+	const store: Store<App.State> = (accessor as any).__store;
+	const selector: string[] = (accessor as any).__path;
+	store.setPartialState(selector, value);
+}
+
+type EventFunctions = Parameters<Parameters<typeof store['on']>[1]>[1];
+
+export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void) {
+	store.on(event, listener);
+}
+
+export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
+	store.off(event, listener);
+}
+
+export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
+	store.dispatch(event, payload);
 }
 
 export const state = makeAccessor(store);

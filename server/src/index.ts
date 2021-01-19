@@ -2,11 +2,13 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { readFile } from 'fs';
 import { promisify } from 'util';
 import { join } from 'path';
-import * as SocketIo from 'socket.io';
+import SocketIo from 'socket.io';
+import { discoverPlugins } from './plugins';
 
 const readFileAsync = promisify(readFile);
 
-const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
+export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
+export const PLUGIN_PATH = join(__dirname, '..', '..', 'plugins');
 
 export function startServer() {
 	return new Promise(resolve => {
@@ -16,7 +18,19 @@ export function startServer() {
 		server.listen(() => resolve(server));
 
 		io.on('connection', (client: SocketIo.Server) => {
-			client.on('message', (data) => { console.log('message\n', data) });
+			client.on('message', async (data) => {
+				if (data == null || typeof data !== 'object') return;
+				const { type } = data;
+
+				if (type === 'DISCOVER_PLUGINS') {
+					client.send({
+						type: 'DISCOVER_PLUGINS_RESULT',
+						payload: {
+							plugins: await discoverPlugins(),
+						},
+					});
+				}
+			});
 			client.on('disconnect', () => {});
 		});
 
@@ -35,6 +49,17 @@ export function startServer() {
 				} else if (requestUrl.startsWith('/client/') && requestUrl.indexOf('..') === -1) {
 					const requestPath = requestUrl.replace('/client/', '');
 					const requestTarget = join(CLIENT_PATH, requestPath);
+					try {
+						const file = await readFileAsync(requestTarget);
+						res.writeHead(200);
+						res.end(file);
+					} catch {
+						res.statusCode = 404;
+						res.end();
+					}
+				} else if (requestUrl.startsWith('/plugins/')) {
+					const requestPath = requestUrl.replace('/plugins/', '');
+					const requestTarget = join(PLUGIN_PATH, requestPath);
 					try {
 						const file = await readFileAsync(requestTarget);
 						res.writeHead(200);

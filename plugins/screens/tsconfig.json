@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "build",
+    "strict": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "declaration": true,
+    "lib": ["ES2015", "DOM"],
+    "target": "ES2019",
+    "module": "UMD",
+    "moduleResolution": "node",
+    "jsx": "react"
+  },
+  "include": ["**/*.ts"],
+  "files": ["../../client/types/insula.d.ts", "../../client/types/app.d.ts"]
+}

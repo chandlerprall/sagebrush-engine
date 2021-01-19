@@ -9,7 +9,8 @@
     "declaration": true,
     "lib": ["ES2015"],
     "target": "ES2020",
-    "module": "CommonJS"
+    "module": "CommonJS",
+    "esModuleInterop": true
   },
   "include": ["**/*.ts"]
 }
