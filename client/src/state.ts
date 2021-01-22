@@ -55,20 +55,26 @@ type Accessor<Shape, ForceOptional = false> = {
         // instead, we can return a private class and convert it back to
         // `undefined` when the time comes to interpret the output type
         : Undefined<Shape[key]> // note there is no `| undefined` here, as the type already includes it from being optional
-      : key extends RequiredKeys<Shape>
-        ? Accessor<Shape[key], ForceOptional> // required
-        : Accessor<Shape[key], true> // optional
+			: Shape[key] extends Array<infer Members>
+				? ForceOptional extends false
+					? Array<Members>
+					: Array<Members> | undefined
+				: key extends RequiredKeys<Shape>
+					? Accessor<Shape[key], ForceOptional> // required
+					: Accessor<Shape[key], true> // optional
 };
 
 type TypeFromAccessor<T> = T extends primitive
   ? T
-  : T extends Undefined<infer U>
-    ? U
-    : T extends Accessor<infer Shape, infer ForceOptional>
-      ? ForceOptional extends true
-        ? Shape | undefined
-        : Shape
-      : never
+	: T extends Array<any>
+		? T
+		: T extends Undefined<infer U>
+			? U
+			: T extends Accessor<infer Shape, infer ForceOptional>
+				? ForceOptional extends true
+					? Shape | undefined
+					: Shape
+				: never
 ;
 
 function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] = []): Accessor<Shape> {

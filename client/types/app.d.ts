@@ -1,15 +1,22 @@
 /// <reference types="react" />
-declare module "Plugin" {
-    export default class Plugin {
+declare module "Log" {
+    export const LOG_LEVEL_ERROR = 0;
+    export const LOG_LEVEL_WARN = 1;
+    export const LOG_LEVEL_INFO = 2;
+    export const LOG_LEVEL_DEBUG = 3;
+    export type LOG_LEVEL = typeof LOG_LEVEL_ERROR | typeof LOG_LEVEL_WARN | typeof LOG_LEVEL_INFO | typeof LOG_LEVEL_DEBUG;
+    export const loggers: Log[];
+    export default class Log {
         private name;
-        private entry;
-        private orchestrator?;
-        isLoaded: boolean;
-        loadingPromise: Promise<undefined | Event | string>;
-        constructor(definition: App.PluginDefinition);
-        private load;
-        initialize(): Promise<any>;
-        set orchestration(orchestration: App.PluginOrchestration);
+        private _level;
+        enabled: boolean;
+        constructor(name: string);
+        set level(level: 'error' | 'warn' | 'info' | 'debug');
+        log(level: LOG_LEVEL, message: any): void;
+        error(message: any): void;
+        warn(message: any): void;
+        info(message: any): void;
+        debug(message: any): void;
     }
 }
 declare module "LoadingScreen" {
@@ -44,9 +51,9 @@ declare module "state" {
         [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
     }[keyof T];
     type Accessor<Shape, ForceOptional = false> = {
-        [key in keyof Shape]-?: Shape[key] extends primitive ? key extends RequiredKeys<Shape> ? ForceOptional extends false ? Shape[key] : Shape[key] | undefined : Undefined<Shape[key]> : key extends RequiredKeys<Shape> ? Accessor<Shape[key], ForceOptional> : Accessor<Shape[key], true>;
+        [key in keyof Shape]-?: Shape[key] extends primitive ? key extends RequiredKeys<Shape> ? ForceOptional extends false ? Shape[key] : Shape[key] | undefined : Undefined<Shape[key]> : Shape[key] extends Array<infer Members> ? ForceOptional extends false ? Array<Members> : Array<Members> | undefined : key extends RequiredKeys<Shape> ? Accessor<Shape[key], ForceOptional> : Accessor<Shape[key], true>;
     };
-    type TypeFromAccessor<T> = T extends primitive ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
+    type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
     export function setResource<T>(accessor: T, value: TypeFromAccessor<T>): void;
@@ -55,6 +62,32 @@ declare module "state" {
     export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
     export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
     export const state: Accessor<App.State, false>;
+}
+declare module "Plugin" {
+    import Log from "Log";
+    export interface PluginFunctions {
+        dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
+        onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        log: Log;
+    }
+    export default class Plugin {
+        private name;
+        private entry;
+        private log;
+        private subscriptions;
+        initializer?: (args: PluginFunctions) => void | (() => void);
+        private dispatchEvent;
+        private onEvent;
+        private offEvent;
+        private pluginFunctions;
+        isLoaded: boolean;
+        loadingPromise: Promise<undefined | Event | string>;
+        constructor(definition: App.PluginDefinition);
+        private load;
+        initialize(): Promise<any>;
+        deinitialize(): void;
+    }
 }
 declare module "socket" {
     import { ReactNode, ReactElement } from 'react';
@@ -80,7 +113,7 @@ declare module "socket" {
     }): ReactElement;
 }
 declare module "plugins" {
-    import Plugin from "Plugin";
+    import Plugin, { PluginFunctions } from "Plugin";
     global {
         namespace App {
             interface PluginDefinition {
@@ -90,8 +123,8 @@ declare module "plugins" {
                 entry: string;
             }
             interface PluginOrchestration {
-                initialize(): void | Promise<void>;
-                deinitialize(): void;
+                initialize(fns: PluginFunctions): void | Promise<void>;
+                deinitialize(fns: PluginFunctions): void;
             }
             interface State {
                 plugins: {
@@ -108,7 +141,7 @@ declare module "plugins" {
     }
     global {
         interface Window {
-            registerPlugin(name: string, orchestration: App.PluginOrchestration): void;
+            registerPlugin(name: string, initializer: (arg: PluginFunctions) => void | (() => void)): void;
         }
     }
 }

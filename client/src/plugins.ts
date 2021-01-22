@@ -33,16 +33,16 @@ declare global {
 
 declare global {
 	interface Window {
-		registerPlugin(name: string, orchestration: App.PluginOrchestration): void;
+		registerPlugin(name: string, initializer: (arg: PluginFunctions) => void | (() => void)): void;
 	}
 }
 const plugins = new Map<string, Plugin>();
-window.registerPlugin = (name, orchestration: App.PluginOrchestration) => {
+window.registerPlugin = (name, initializer) => {
 	const plugin = plugins.get(name);
 	if (plugin == null) {
 		console.error(`No matching plugin for "${name}" orchestration`);
 	} else {
-		plugin.orchestration = orchestration;
+		plugin.initializer = initializer;
 	}
 };
 
@@ -80,7 +80,7 @@ onEvent('INITIALIZE_PLUGINS', () => {
 	const loadedPlugins = getResource(state.plugins.loaded);
 	const initPromises: Array<Promise<void>> = [];
 	for (let i = 0; i < loadedPlugins.length; i++) {
-		const plugin = loadedPlugins[i] as Plugin;
+		const plugin = loadedPlugins[i];
 		initPromises.push(plugin.initialize());
 	}
 	Promise.all(initPromises)

@@ -1,9 +1,10 @@
-function initialize() {
-	console.log('my plugin is initializing', arguments)
-}
+window.registerPlugin('screens', function initPlugin({ log }) {
+	log.enabled = true;
+	log.level = 'debug';
 
-function deinitialize() {
-	console.log('my plugin is deinitializing')
-}
+	log.debug('initialized');
 
-window.registerPlugin('screens', { initialize, deinitialize });
+	return () => {
+		log.debug('deinitialized');
+	};
+});
