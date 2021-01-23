@@ -11,6 +11,7 @@ declare global {
 				DISCOVER_PLUGINS_RESULT: {
 					plugins: PluginDefinition[];
 				}
+				RELOAD_PLUGIN: PluginDefinition
 			}
 		}
 	}

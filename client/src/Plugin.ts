@@ -10,13 +10,15 @@ export interface PluginFunctions {
 
 export default class Plugin {
 	private name: string;
-	// private description: string;
-	// private version: string;
-	private entry: string;
-	private log: Log;
+	public description: string;
+	public version: string;
+	public entry: string;
 
+	private log: Log;
 	private subscriptions: Array<[string, Function]> = [];
+
 	public initializer?: (args: PluginFunctions) => void | (() => void);
+	private uninitializer?: void | (() => void);
 
 	private dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
 		dispatchEvent(event, payload);
@@ -36,8 +38,8 @@ export default class Plugin {
 
 	constructor(definition: App.PluginDefinition) {
 		this.name = definition.name;
-		// this.description = definition.description;
-		// this.version = definition.version;
+		this.description = definition.description;
+		this.version = definition.version;
 		this.entry = definition.entry;
 		this.log = new Log(`Plugin(${this.name})`);
 
@@ -53,7 +55,7 @@ export default class Plugin {
 		this.loadingPromise.then(() => this.isLoaded = true);
 	}
 
-	private async load(): Promise<undefined | Event | string> {
+	async load(): Promise<undefined | Event | string> {
 		return new Promise((resolve, reject) => {
 			const script = document.createElement('script');
 			script.onload = () => {
@@ -74,11 +76,13 @@ export default class Plugin {
 		if (this.initializer === undefined) {
 			this.log.error('initialize called without an initializer');
 		} else {
-			this.initializer(this.pluginFunctions);
+			this.uninitializer = this.initializer(this.pluginFunctions);
 		}
 	}
 
 	deinitialize(): void {
+		if (this.uninitializer) this.uninitializer();
+
 		for (let i = 0; i < this.subscriptions.length; i++) {
 			const [event, listener] = this.subscriptions[i];
 			// @ts-ignore

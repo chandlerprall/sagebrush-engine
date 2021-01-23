@@ -3,6 +3,14 @@ export const LOG_LEVEL_WARN = 1;
 export const LOG_LEVEL_INFO = 2;
 export const LOG_LEVEL_DEBUG = 3;
 export type LOG_LEVEL = typeof LOG_LEVEL_ERROR | typeof LOG_LEVEL_WARN | typeof LOG_LEVEL_INFO | typeof LOG_LEVEL_DEBUG;
+export type LOG_LEVEL_STRING = 'error' | 'warn' | 'info' | 'debug';
+
+const logLevelMap: { [key in LOG_LEVEL_STRING]: LOG_LEVEL } = {
+	'error': 0,
+	'warn': 1,
+	'info': 2,
+	'debug': 3,
+}
 
 export const loggers: Log[] = [];
 
@@ -14,32 +22,30 @@ export default class Log {
 		loggers.push(this);
 	}
 
-	set level(level: 'error' | 'warn' | 'info' | 'debug') {
-		if (level === 'error') this._level = 0;
-		if (level === 'warn') this._level = 1;
-		if (level === 'info') this._level = 2;
-		if (level === 'debug') this._level = 3;
+	set level(level: LOG_LEVEL_STRING) {
+		this._level = logLevelMap[level];
 	}
 
-	log(level: LOG_LEVEL, message: any) {
-		if (this.enabled && level <= this._level) {
+	log(level: LOG_LEVEL_STRING, message: any) {
+		const _level = logLevelMap[level];
+		if (this.enabled && _level <= this._level) {
 			console.log(`${this.name}:`, message);
 		}
 	}
 
 	error(message: any) {
-		this.log(LOG_LEVEL_ERROR, message);
+		this.log('error', message);
 	}
 
 	warn(message: any) {
-		this.log(LOG_LEVEL_WARN, message);
+		this.log('warn', message);
 	}
 
 	info(message: any) {
-		this.log(LOG_LEVEL_INFO, message);
+		this.log('info', message);
 	}
 
 	debug(message: any) {
-		this.log(LOG_LEVEL_DEBUG, message);
+		this.log('debug', message);
 	}
 }

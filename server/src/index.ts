@@ -3,7 +3,10 @@ import { readFile } from 'fs';
 import { promisify } from 'util';
 import { join } from 'path';
 import SocketIo from 'socket.io';
-import { discoverPlugins } from './plugins';
+import chokidar from 'chokidar';
+// @ts-ignore
+import findup from 'findup';
+import { discoverPlugin, discoverPlugins } from './plugins';
 
 const readFileAsync = promisify(readFile);
 
@@ -23,10 +26,26 @@ export function startServer() {
 				const { type } = data;
 
 				if (type === 'DISCOVER_PLUGINS') {
+					const { plugins, pluginDirsToWatch } = await discoverPlugins();
+
+					async function reloadPlugin(path: string) {
+						const packagePath = join(findup.sync(path, 'package.json'), 'package.json');
+						const packageDetails = await discoverPlugin(packagePath);
+						client.send({
+							type: 'RELOAD_PLUGIN',
+							payload: packageDetails,
+						});
+					}
+					const pluginWatcher = chokidar.watch(pluginDirsToWatch);
+					pluginWatcher.on('ready', () => {
+						pluginWatcher.on('add', reloadPlugin);
+						pluginWatcher.on('change', reloadPlugin);
+					});
+
 					client.send({
 						type: 'DISCOVER_PLUGINS_RESULT',
 						payload: {
-							plugins: await discoverPlugins(),
+							plugins,
 						},
 					});
 				}

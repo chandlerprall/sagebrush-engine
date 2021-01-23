@@ -1,4 +1,6 @@
 const {app, BrowserWindow, session} = require('electron');
+app.commandLine.appendSwitch ('disable-http-cache');
+
 const {startServer} = require('../server/build');
 
 const IS_DEVELOPMENT = true;

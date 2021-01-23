@@ -91,3 +91,20 @@ onEvent('INITIALIZE_PLUGINS', () => {
 			console.error(e);
 		});
 });
+
+onMessage('RELOAD_PLUGIN', async (pluginDef) => {
+	const plugin = plugins.get(pluginDef.name);
+	if (plugin === undefined) {
+		console.error(`Cannot reload plugin "${pluginDef.name}": plugin not loaded`);
+		return;
+	}
+
+	plugin.deinitialize();
+
+	plugin.version = pluginDef.version;
+	plugin.description = pluginDef.description;
+	plugin.entry = pluginDef.entry;
+
+	await plugin.load();
+	await plugin.initialize();
+});

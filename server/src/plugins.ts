@@ -10,7 +10,7 @@ interface PackageDetails {
 	name: string;
 	version: string;
 	description: string;
-	main?: string;
+	entry: string;
 }
 
 function isPackageDetails(x: any): x is PackageDetails {
@@ -23,7 +23,7 @@ function isPackageDetails(x: any): x is PackageDetails {
 	return false;
 }
 
-export async function discoverPlugins() {
+export async function discoverPlugins(): Promise<{ plugins: PackageDetails[], pluginDirsToWatch: string[] }> {
 	return new Promise((resolve, reject) => {
 		glob(
 			'*/package.json',
@@ -35,36 +35,46 @@ export async function discoverPlugins() {
 				if (error) {
 					reject(error);
 				} else {
-					const packagePromises = [];
+					const packagePromises: Array<Promise<PackageDetails>> = [];
 					for (let i = 0; i < packageLocations.length; i++) {
 						const packageLocation = packageLocations[i];
-						packagePromises.push(new Promise(async (resolve, reject) => {
-							try {
-								const packageDetails = json.parse(await readFile(packageLocation, 'utf8'));
-								if (isPackageDetails(packageDetails) === false) {
-									throw new Error(`File at ${packageLocation} is not valid json5`);
-								}
-								const { name, version, description, main = 'index.js' } = packageDetails;
-								const packageDirectory = dirname(packageLocation);
-								let entry = join(packageDirectory, main);
-
-								// resolve entry if it points at a directory
-								const stats = await stat(entry);
-								if (stats.isDirectory()) entry = join(entry, 'index.js');
-
-								const relativeEntry = join('plugins', relative(PLUGIN_PATH, entry)).replace(/\\/g, '/');
-
-								resolve({ name, version, description, entry: relativeEntry });
-							} catch(e) {
-								reject(e);
-							}
-						}));
+						packagePromises.push(discoverPlugin(packageLocation));
 					}
 
 					const plugins = await Promise.all(packagePromises);
-					resolve(plugins);
+
+					const pluginDirsToWatch: string[] = [];
+					for (let i = 0; i < packageLocations.length; i++) {
+						pluginDirsToWatch.push(dirname(packageLocations[i]));
+					}
+
+					resolve({ plugins, pluginDirsToWatch });
 				}
 			}
 		);
 	});
+}
+
+export async function discoverPlugin(packageLocation: string): Promise<PackageDetails> {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const packageDetails = json.parse(await readFile(packageLocation, 'utf8'));
+			if (isPackageDetails(packageDetails) === false) {
+				throw new Error(`File at ${packageLocation} is not valid json5`);
+			}
+			const { name, version, description, main = 'index.js' } = packageDetails;
+			const packageDirectory = dirname(packageLocation);
+			let entry = join(packageDirectory, main);
+
+			// resolve entry if it points at a directory
+			const stats = await stat(entry);
+			if (stats.isDirectory()) entry = join(entry, 'index.js');
+
+			const relativeEntry = join('plugins', relative(PLUGIN_PATH, entry)).replace(/\\/g, '/');
+
+			resolve({ name, version, description, entry: relativeEntry });
+		} catch(e) {
+			reject(e);
+		}
+	})
 }
