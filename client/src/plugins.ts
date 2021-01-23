@@ -66,8 +66,7 @@ onEvent('LOAD_PLUGINS', () => {
 });
 
 onEvent('PLUGIN_LOADED', plugin => {
-	const loadedPlugins = getResource(state.plugins.loaded);
-	loadedPlugins.push(plugin);
+	const loadedPlugins = [...getResource(state.plugins.loaded), plugin];
 	setResource(state.plugins.loaded, loadedPlugins);
 
 	const discoveredPluginsCount = getResource((state.plugins.loaded.length));

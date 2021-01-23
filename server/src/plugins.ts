@@ -23,7 +23,7 @@ function isPackageDetails(x: any): x is PackageDetails {
 	return false;
 }
 
-export async function discoverPlugins(): Promise<{ plugins: PackageDetails[], pluginDirsToWatch: string[] }> {
+export async function discoverPlugins(): Promise<PackageDetails[]> {
 	return new Promise((resolve, reject) => {
 		glob(
 			'*/package.json',
@@ -48,7 +48,7 @@ export async function discoverPlugins(): Promise<{ plugins: PackageDetails[], pl
 						pluginDirsToWatch.push(dirname(packageLocations[i]));
 					}
 
-					resolve({ plugins, pluginDirsToWatch });
+					resolve(plugins);
 				}
 			}
 		);

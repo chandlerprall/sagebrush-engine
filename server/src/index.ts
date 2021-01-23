@@ -26,17 +26,41 @@ export function startServer() {
 				const { type } = data;
 
 				if (type === 'DISCOVER_PLUGINS') {
-					const { plugins, pluginDirsToWatch } = await discoverPlugins();
+					const plugins = await discoverPlugins();
 
-					async function reloadPlugin(path: string) {
-						const packagePath = join(findup.sync(path, 'package.json'), 'package.json');
-						const packageDetails = await discoverPlugin(packagePath);
-						client.send({
-							type: 'RELOAD_PLUGIN',
-							payload: packageDetails,
-						});
+					const pluginsToReload: string[] = [];
+					let pluginsReloadTimeout: undefined | NodeJS.Timeout = undefined;
+					async function performPluginsReload() {
+						pluginsReloadTimeout = undefined;
+						const foundPlugins = new Set<string>();
+						for (let i = 0; i < pluginsToReload.length; i++) {
+							const packagePath = pluginsToReload[i];
+							if (foundPlugins.has(packagePath) === false) {
+								foundPlugins.add(packagePath);
+								client.send({
+									type: 'RELOAD_PLUGIN',
+									payload: await discoverPlugin(packagePath),
+								});
+							}
+						}
+						pluginsToReload.length = 0;
 					}
-					const pluginWatcher = chokidar.watch(pluginDirsToWatch);
+					function schedulePluginReload(packagePath: string) {
+						pluginsToReload.push(packagePath);
+						if (pluginsReloadTimeout === undefined) {
+							pluginsReloadTimeout = setTimeout(performPluginsReload, 1000);
+						}
+					}
+					function reloadPlugin(path: string) {
+						const packagePath = join(findup.sync(path, 'package.json'), 'package.json');
+						schedulePluginReload(packagePath);
+					}
+					const pluginWatcher = chokidar.watch(
+						PLUGIN_PATH,
+						{
+							disableGlobbing: true,
+						}
+					);
 					pluginWatcher.on('ready', () => {
 						pluginWatcher.on('add', reloadPlugin);
 						pluginWatcher.on('change', reloadPlugin);

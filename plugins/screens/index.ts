@@ -1,5 +1,5 @@
 window.registerPlugin('screens', function initPlugin({ log }) {
-	log.enabled = true;
+	// log.enabled = true;
 	log.level = 'debug';
 
 	log.debug('initialized');

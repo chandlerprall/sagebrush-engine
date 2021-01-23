@@ -59,7 +59,7 @@ export default class Plugin {
 		return new Promise((resolve, reject) => {
 			const script = document.createElement('script');
 			script.onload = () => {
-				this.log.info(`loaded`);
+				this.log.debug('loaded');
 				resolve(undefined);
 			};
 			script.onerror = (e) => {
