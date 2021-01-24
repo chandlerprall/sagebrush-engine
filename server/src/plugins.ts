@@ -2,7 +2,6 @@ import { dirname, join, relative } from 'path';
 import glob from 'glob';
 import { promises } from 'fs';
 import json from 'json5';
-import { PLUGIN_PATH } from './index';
 
 const { readFile, stat } = promises;
 
@@ -23,12 +22,12 @@ function isPackageDetails(x: any): x is PackageDetails {
 	return false;
 }
 
-export async function discoverPlugins(): Promise<PackageDetails[]> {
+export async function discoverPlugins(pluginDirectory: string): Promise<PackageDetails[]> {
 	return new Promise((resolve, reject) => {
 		glob(
 			'*/package.json',
 			{
-				cwd: PLUGIN_PATH,
+				cwd: pluginDirectory,
 				realpath: true,
 			},
 			async (error, packageLocations) => {
@@ -38,7 +37,7 @@ export async function discoverPlugins(): Promise<PackageDetails[]> {
 					const packagePromises: Array<Promise<PackageDetails>> = [];
 					for (let i = 0; i < packageLocations.length; i++) {
 						const packageLocation = packageLocations[i];
-						packagePromises.push(discoverPlugin(packageLocation));
+						packagePromises.push(discoverPlugin(pluginDirectory, packageLocation));
 					}
 
 					const plugins = await Promise.all(packagePromises);
@@ -55,7 +54,7 @@ export async function discoverPlugins(): Promise<PackageDetails[]> {
 	});
 }
 
-export async function discoverPlugin(packageLocation: string): Promise<PackageDetails> {
+export async function discoverPlugin(pluginDirectory: string, packageLocation: string): Promise<PackageDetails> {
 	return new Promise(async (resolve, reject) => {
 		try {
 			const packageDetails = json.parse(await readFile(packageLocation, 'utf8'));
@@ -70,7 +69,7 @@ export async function discoverPlugin(packageLocation: string): Promise<PackageDe
 			const stats = await stat(entry);
 			if (stats.isDirectory()) entry = join(entry, 'index.js');
 
-			const relativeEntry = join('plugins', relative(PLUGIN_PATH, entry)).replace(/\\/g, '/');
+			const relativeEntry = join('plugins', relative(pluginDirectory, entry)).replace(/\\/g, '/');
 
 			resolve({ name, version, description, entry: relativeEntry });
 		} catch(e) {

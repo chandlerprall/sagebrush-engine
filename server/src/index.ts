@@ -11,9 +11,13 @@ import { discoverPlugin, discoverPlugins } from './plugins';
 const readFileAsync = promisify(readFile);
 
 export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
-export const PLUGIN_PATH = join(__dirname, '..', '..', 'plugins');
 
-export function startServer() {
+interface StartServerConfig {
+	pluginDirectory: string;
+}
+export function startServer(config: StartServerConfig) {
+	const { pluginDirectory } = config;
+
 	return new Promise(resolve => {
 		const server = createServer();
 		// @ts-ignore
@@ -26,7 +30,7 @@ export function startServer() {
 				const { type } = data;
 
 				if (type === 'DISCOVER_PLUGINS') {
-					const plugins = await discoverPlugins();
+					const plugins = await discoverPlugins(pluginDirectory);
 
 					const pluginsToReload: string[] = [];
 					let pluginsReloadTimeout: undefined | NodeJS.Timeout = undefined;
@@ -39,7 +43,7 @@ export function startServer() {
 								foundPlugins.add(packagePath);
 								client.send({
 									type: 'RELOAD_PLUGIN',
-									payload: await discoverPlugin(packagePath),
+									payload: await discoverPlugin(pluginDirectory, packagePath),
 								});
 							}
 						}
@@ -56,7 +60,7 @@ export function startServer() {
 						schedulePluginReload(packagePath);
 					}
 					const pluginWatcher = chokidar.watch(
-						PLUGIN_PATH,
+						pluginDirectory,
 						{
 							disableGlobbing: true,
 						}
@@ -102,7 +106,7 @@ export function startServer() {
 					}
 				} else if (requestUrl.startsWith('/plugins/')) {
 					const requestPath = requestUrl.replace('/plugins/', '');
-					const requestTarget = join(PLUGIN_PATH, requestPath);
+					const requestTarget = join(pluginDirectory, requestPath);
 					try {
 						const file = await readFileAsync(requestTarget);
 						res.writeHead(200);
