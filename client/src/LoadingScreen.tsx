@@ -1,18 +1,23 @@
-import React from 'react';
-import { state, useResource } from './state';
+import React, { useEffect } from 'react';
+import { state, useResource, dispatchEvent } from './state';
 
 export default function LoadingScreen() {
 	const discoveredPlugins = useResource(state.plugins.discovered);
 	const loadedPlugins = useResource(state.plugins.loaded);
 
+	const discoveredPluginsCount = discoveredPlugins.length;
+	const loadedPluginsCount = loadedPlugins.length;
+
+	useEffect(() => {
+		if (discoveredPluginsCount === loadedPluginsCount) {
+			dispatchEvent('FINISHED_LOADING_PLUGINS', null);
+		}
+	}, [discoveredPluginsCount, loadedPluginsCount])
+
 	return (
 		<div>
 			<p>I am a loading screen</p>
-			<p>{discoveredPlugins.length} plugins found</p>
-			<pre>
-				{JSON.stringify(discoveredPlugins, null, 2)}
-			</pre>
-			<p>{loadedPlugins.length} plugins loaded</p>
+			<meter max={discoveredPlugins.length} value={loadedPlugins.length} />
 		</div>
 	)
 }

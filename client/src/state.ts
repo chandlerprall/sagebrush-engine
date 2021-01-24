@@ -1,6 +1,7 @@
 import Store  from 'insula';
 import { ComponentType, useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
+import MainScreen from './MainScreen';
 
 declare global {
 	namespace App {
@@ -9,11 +10,16 @@ declare global {
 				currentScreen: ComponentType;
 			};
 			ui: {
-				screens: { [key: string]: ComponentType };
+				screens: {
+					loading: ComponentType;
+					main: ComponentType;
+				};
 			};
 		}
 
-		interface Events {}
+		interface Events {
+			FINISHED_LOADING_PLUGINS: null;
+		}
 	}
 }
 
@@ -24,6 +30,7 @@ export const store = new Store<App.State>({
 	ui: {
 		screens: {
 			loading: LoadingScreen,
+			main: MainScreen,
 		},
 	},
 	plugins: {

@@ -91,6 +91,10 @@ onEvent('INITIALIZE_PLUGINS', () => {
 		});
 });
 
+onEvent('FINISHED_LOADING_PLUGINS', () => {
+	setResource(state.app.currentScreen, getResource(state.ui.screens.main));
+});
+
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {
 	const plugin = plugins.get(pluginDef.name);
 	if (plugin === undefined) {
