@@ -14,5 +14,5 @@
     "jsx": "react"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-    "files": ["../../../client/types/insula.d.ts", "../../../client/types/app.d.ts"]
+    "files": ["../../../client/types/insula.d.ts", "../../../client/types/app.d.ts", "../../../node_modules/@emotion/react/types/css-prop.d.ts"]
 }

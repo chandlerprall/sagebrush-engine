@@ -15,6 +15,6 @@
     "esModuleInterop": true,
     "moduleResolution": "node"
   },
-  "files": ["types/insula.d.ts"],
+  "files": ["types/insula.d.ts", "../node_modules/@emotion/react/types/css-prop.d.ts"],
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

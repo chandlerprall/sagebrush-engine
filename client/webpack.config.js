@@ -4,8 +4,14 @@ const babelConfig = {
 	babelrc: false,
 	presets: [
 		'@babel/preset-typescript',
-		['@babel/preset-env', {targets: {chrome: '87'}}],
-		'@babel/preset-react',
+		[
+			'@babel/preset-react',
+			{ 'runtime': 'automatic', 'importSource': '@emotion/react' }
+		],
+		[
+			'@babel/preset-env',
+			{ targets: { chrome: '87' } }
+		],
 	],
 	plugins: [
 		'@babel/plugin-proposal-class-properties'

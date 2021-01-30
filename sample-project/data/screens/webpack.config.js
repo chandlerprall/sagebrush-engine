@@ -19,6 +19,7 @@ module.exports = {
 	externals: {
 		react: 'React',
 		'react-dom': 'ReactDOM',
+		'@emotion/react/jsx-runtime': 'EmotionReactJsxRuntime',
 	},
 
 	module: {
@@ -31,8 +32,14 @@ module.exports = {
 					babelrc: false,
 					presets: [
 						'@babel/preset-typescript',
-						'@babel/preset-react',
-						'@babel/preset-env',
+						[
+							'@babel/preset-react',
+							{ 'runtime': 'automatic', 'importSource': '@emotion/react' }
+						],
+						['@babel/preset-env', {targets: {chrome: '87'}}],
+					],
+					plugins: [
+						'@emotion/babel-plugin'
 					]
 				}
 			}

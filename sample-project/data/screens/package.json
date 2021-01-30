@@ -5,7 +5,8 @@
   "private": true,
   "main": "build/index.js",
   "scripts": {
-    "dev": "tsc -w"
+    "dev": "webpack -w",
+    "build-types": "tsc"
   },
   "dependencies": {
     "sector-client": "0.0.0-alpha"

@@ -16,7 +16,7 @@ export default function LoadingScreen() {
 
 	return (
 		<div>
-			<p>I am a loading screen</p>
+			<p css={{ color: 'red' }}>Loading</p>
 			<meter max={discoveredPlugins.length} value={loadedPlugins.length} />
 		</div>
 	)
