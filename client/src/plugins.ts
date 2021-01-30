@@ -92,7 +92,7 @@ onEvent('INITIALIZE_PLUGINS', () => {
 });
 
 onEvent('FINISHED_LOADING_PLUGINS', () => {
-	setResource(state.app.currentScreen, getResource(state.ui.screens.main));
+	setResource(state.app.currentScreen, state.ui.screens.main);
 });
 
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {

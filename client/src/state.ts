@@ -7,7 +7,7 @@ declare global {
 	namespace App {
 		interface State {
 			app: {
-				currentScreen: ComponentType;
+				currentScreen: Accessor<ComponentType>;
 			};
 			ui: {
 				screens: {
@@ -25,7 +25,7 @@ declare global {
 
 export const store = new Store<App.State>({
 	app: {
-		currentScreen: LoadingScreen,
+		currentScreen: undefined as any, // fulfilled after `state` accessor is created below
 	},
 	ui: {
 		screens: {
@@ -47,7 +47,7 @@ class Undefined<T>{
 }
 
 type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T];
-type Accessor<Shape, ForceOptional = false> = {
+export type Accessor<Shape, ForceOptional = false> = {
   [key in keyof Shape]-?:
     Shape[key] extends primitive
       ? key extends RequiredKeys<Shape>
@@ -78,6 +78,23 @@ type TypeFromAccessor<T> = T extends primitive
 		: T extends Undefined<infer U>
 			? U
 			: T extends Accessor<infer Shape, infer ForceOptional>
+				? Shape extends Accessor<infer SubShape>
+					? ForceOptional extends true
+						? SubShape | undefined
+						: SubShape
+					: ForceOptional extends true
+							? Shape | undefined
+							: Shape
+				: never
+;
+
+type SetTypeFromAccessor<T> = T extends primitive
+  ? T
+	: T extends Array<any>
+		? T
+		: T extends Undefined<infer U>
+			? U
+			: T extends Accessor<infer Shape, infer ForceOptional>
 				? ForceOptional extends true
 					? Shape | undefined
 					: Shape
@@ -97,21 +114,57 @@ function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] 
 	) as any;
 }
 
+function resolvePossiblePointer<T>(accessor: T): string[] {
+	const store: Store<App.State> = (accessor as any).__store;
+	let selector: string[] = (accessor as any).__path;
+
+	const _value = store.getPartialState(selector);
+	if (_value != null && typeof _value === 'object') {
+		if (_value.__store && _value.__path) {
+			accessor = _value;
+			selector = (accessor as any).__path;
+		}
+	}
+
+	return selector;
+}
+
 export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 	const store: Store<App.State> = (accessor as any).__store;
-	const selector: string[] = (accessor as any).__path;
+	const rawSelector: string[] = (accessor as any).__path;
+	const [resolvedSelector, setResolvedSelector] = useState(() => resolvePossiblePointer(accessor));
 
-	const [value, setValue] = useState(() => store.getPartialState(selector));
+	const [value, setValue] = useState(() => store.getPartialState(resolvedSelector));
 
 	useEffect(() => {
 		// it's possible for a value to have changed between the initial render and this useEffect firing
-		const currentValue = store.getPartialState(selector);
-		if (currentValue !== value) setValue(() => currentValue);
+		const currentValue = store.getPartialState(resolvedSelector);
+		setValue(() => currentValue);
 
-		return store.subscribeToState([selector], ([value]) => {
-			setValue(() => value);
-		});
-	}, []);
+		const subscriptions: Function[] = [];
+
+		if (rawSelector.join() === resolvedSelector.join()) {
+			subscriptions.push(store.subscribeToState([rawSelector], ([value]) => {
+				setValue(() => value);
+			}));
+		} else {
+			// watch pointer
+			subscriptions.push(
+				store.subscribeToState([rawSelector], ([accessor]) => {
+					setResolvedSelector((accessor as any).__path);
+				}),
+				store.subscribeToState([resolvedSelector], ([value]) => {
+					setValue(() => value);
+				})
+			);
+		}
+
+		return () => {
+			for (let i = 0; i < subscriptions.length; i++) {
+				subscriptions[i]();
+			}
+		}
+	}, [rawSelector.join(), resolvedSelector.join()]);
 
 	return value;
 }
@@ -122,7 +175,7 @@ export function getResource<T>(accessor: T): TypeFromAccessor<T> {
 	return store.getPartialState(selector);
 }
 
-export function setResource<T>(accessor: T, value: TypeFromAccessor<T>) {
+export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>) {
 	const store: Store<App.State> = (accessor as any).__store;
 	const selector: string[] = (accessor as any).__path;
 	store.setPartialState(selector, value);
@@ -143,3 +196,4 @@ export function dispatchEvent<Event extends keyof App.Events>(event: Event, payl
 }
 
 export const state = makeAccessor(store);
+setResource(state.app.currentScreen, state.ui.screens.loading);

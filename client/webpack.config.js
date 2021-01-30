@@ -20,6 +20,7 @@ module.exports = {
 
 	context: join(__dirname, 'src'),
 	entry: '.',
+	devtool: false,
 
 	output: {
 		path: outDir,

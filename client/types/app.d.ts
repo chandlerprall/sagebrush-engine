@@ -33,7 +33,7 @@ declare module "state" {
         namespace App {
             interface State {
                 app: {
-                    currentScreen: ComponentType;
+                    currentScreen: Accessor<ComponentType>;
                 };
                 ui: {
                     screens: {
@@ -56,13 +56,14 @@ declare module "state" {
     type RequiredKeys<T> = {
         [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
     }[keyof T];
-    type Accessor<Shape, ForceOptional = false> = {
+    export type Accessor<Shape, ForceOptional = false> = {
         [key in keyof Shape]-?: Shape[key] extends primitive ? key extends RequiredKeys<Shape> ? ForceOptional extends false ? Shape[key] : Shape[key] | undefined : Undefined<Shape[key]> : Shape[key] extends Array<infer Members> ? ForceOptional extends false ? Array<Members> : Array<Members> | undefined : key extends RequiredKeys<Shape> ? Accessor<Shape[key], ForceOptional> : Accessor<Shape[key], true>;
     };
-    type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
+    type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? ForceOptional extends true ? SubShape | undefined : SubShape : ForceOptional extends true ? Shape | undefined : Shape : never;
+    type SetTypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
-    export function setResource<T>(accessor: T, value: TypeFromAccessor<T>): void;
+    export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>): void;
     type EventFunctions = Parameters<Parameters<typeof store['on']>[1]>[1];
     export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void): void;
     export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
