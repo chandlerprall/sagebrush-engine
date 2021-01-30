@@ -9,7 +9,7 @@ export default function LoadingScreen() {
 	const loadedPluginsCount = loadedPlugins.length;
 
 	useEffect(() => {
-		if (discoveredPluginsCount === loadedPluginsCount) {
+		if (discoveredPluginsCount > 0 && discoveredPluginsCount === loadedPluginsCount) {
 			dispatchEvent('FINISHED_LOADING_PLUGINS', null);
 		}
 	}, [discoveredPluginsCount, loadedPluginsCount])

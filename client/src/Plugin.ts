@@ -1,10 +1,13 @@
-import { onEvent, offEvent, dispatchEvent } from './state';
+import { onEvent, offEvent, dispatchEvent, useResource, setResource, state } from './state';
 import Log from './Log';
 
 export interface PluginFunctions {
+	state: typeof state;
 	dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
 	onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
 	offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+	useResource: typeof useResource,
+	setResource: typeof setResource,
 	log: Log;
 }
 
@@ -15,7 +18,7 @@ export default class Plugin {
 	public entry: string;
 
 	private log: Log;
-	private subscriptions: Array<[string, Function]> = [];
+	private eventSubscriptions: Array<[string, Function]> = [];
 
 	public initializer?: (args: PluginFunctions) => void | (() => void);
 	private uninitializer?: void | (() => void);
@@ -24,7 +27,7 @@ export default class Plugin {
 		dispatchEvent(event, payload);
 	}
 	private onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
-		this.subscriptions.push([event, listener]);
+		this.eventSubscriptions.push([event, listener]);
 		onEvent(event, listener);
 	}
 	private offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
@@ -44,9 +47,12 @@ export default class Plugin {
 		this.log = new Log(`Plugin(${this.name})`);
 
 		this.pluginFunctions = {
+			state,
 			dispatchEvent: this.dispatchEvent,
 			onEvent: this.onEvent,
 			offEvent: this.offEvent,
+			setResource,
+			useResource,
 			log: this.log,
 		};
 
@@ -83,8 +89,8 @@ export default class Plugin {
 	deinitialize(): void {
 		if (this.uninitializer) this.uninitializer();
 
-		for (let i = 0; i < this.subscriptions.length; i++) {
-			const [event, listener] = this.subscriptions[i];
+		for (let i = 0; i < this.eventSubscriptions.length; i++) {
+			const [event, listener] = this.eventSubscriptions[i];
 			// @ts-ignore
 			offEvent(event, listener);
 		}

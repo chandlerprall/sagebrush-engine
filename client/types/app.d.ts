@@ -5,14 +5,15 @@ declare module "Log" {
     export const LOG_LEVEL_INFO = 2;
     export const LOG_LEVEL_DEBUG = 3;
     export type LOG_LEVEL = typeof LOG_LEVEL_ERROR | typeof LOG_LEVEL_WARN | typeof LOG_LEVEL_INFO | typeof LOG_LEVEL_DEBUG;
+    export type LOG_LEVEL_STRING = 'error' | 'warn' | 'info' | 'debug';
     export const loggers: Log[];
     export default class Log {
         private name;
         private _level;
         enabled: boolean;
         constructor(name: string);
-        set level(level: 'error' | 'warn' | 'info' | 'debug');
-        log(level: LOG_LEVEL, message: any): void;
+        set level(level: LOG_LEVEL_STRING);
+        log(level: LOG_LEVEL_STRING, message: any): void;
         error(message: any): void;
         warn(message: any): void;
         info(message: any): void;
@@ -21,6 +22,9 @@ declare module "Log" {
 }
 declare module "LoadingScreen" {
     export default function LoadingScreen(): JSX.Element;
+}
+declare module "MainScreen" {
+    export default function MainScreen(): JSX.Element;
 }
 declare module "state" {
     import Store from 'insula';
@@ -33,11 +37,13 @@ declare module "state" {
                 };
                 ui: {
                     screens: {
-                        [key: string]: ComponentType;
+                        loading: ComponentType;
+                        main: ComponentType;
                     };
                 };
             }
             interface Events {
+                FINISHED_LOADING_PLUGINS: null;
             }
         }
     }
@@ -64,19 +70,26 @@ declare module "state" {
     export const state: Accessor<App.State, false>;
 }
 declare module "Plugin" {
+    import { useResource, setResource, state } from "state";
     import Log from "Log";
     export interface PluginFunctions {
+        state: typeof state;
         dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
         onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
         offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        useResource: typeof useResource;
+        setResource: typeof setResource;
         log: Log;
     }
     export default class Plugin {
         private name;
-        private entry;
+        description: string;
+        version: string;
+        entry: string;
         private log;
-        private subscriptions;
+        private eventSubscriptions;
         initializer?: (args: PluginFunctions) => void | (() => void);
+        private uninitializer?;
         private dispatchEvent;
         private onEvent;
         private offEvent;
@@ -84,7 +97,7 @@ declare module "Plugin" {
         isLoaded: boolean;
         loadingPromise: Promise<undefined | Event | string>;
         constructor(definition: App.PluginDefinition);
-        private load;
+        load(): Promise<undefined | Event | string>;
         initialize(): Promise<any>;
         deinitialize(): void;
     }
@@ -101,6 +114,7 @@ declare module "socket" {
                     DISCOVER_PLUGINS_RESULT: {
                         plugins: PluginDefinition[];
                     };
+                    RELOAD_PLUGIN: PluginDefinition;
                 }
             }
         }

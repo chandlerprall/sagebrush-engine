@@ -7,12 +7,12 @@
     "noUnusedParameters": true,
     "noUnusedLocals": true,
     "declaration": true,
+    "emitDeclarationOnly": true,
     "lib": ["ES2015", "DOM"],
-    "target": "ES2019",
-    "module": "UMD",
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "jsx": "react"
   },
-  "include": ["**/*.ts"],
-  "files": ["../../../client/types/insula.d.ts", "../../../client/types/app.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx"],
+    "files": ["../../../client/types/insula.d.ts", "../../../client/types/app.d.ts"]
 }

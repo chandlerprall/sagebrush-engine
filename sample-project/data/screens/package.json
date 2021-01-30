@@ -1,0 +1,21 @@
+{
+  "name": "screens",
+  "description": "Provides the interface screens",
+  "version": "0.0.0-alpha",
+  "private": true,
+  "main": "build/index.js",
+  "scripts": {
+    "dev": "tsc -w"
+  },
+  "dependencies": {
+    "sector-client": "0.0.0-alpha"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/preset-react": "^7.12.10",
+    "typescript": "^4.1.3",
+    "webpack": "^5.19.0",
+    "webpack-cli": "^4.4.0"
+  }
+}
