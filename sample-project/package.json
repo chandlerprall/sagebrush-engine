@@ -5,6 +5,6 @@
   "main": "index.js",
   "license": "private",
   "scripts": {
-    "run": "electron ."
+    "start": "electron ."
   }
 }

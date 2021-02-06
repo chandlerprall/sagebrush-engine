@@ -13,10 +13,11 @@ const readFileAsync = promisify(readFile);
 export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
 
 interface StartServerConfig {
+	indexFileLocation: string;
 	pluginDirectory: string;
 }
 export function startServer(config: StartServerConfig) {
-	const { pluginDirectory } = config;
+	const { indexFileLocation, pluginDirectory } = config;
 
 	return new Promise(resolve => {
 		const server = createServer();
@@ -87,7 +88,7 @@ export function startServer(config: StartServerConfig) {
 				const requestUrl = req.url || '/';
 
 				if (requestUrl === '/') {
-					const indexFile = await readFileAsync(join(__dirname, '..', 'index.html'));
+					const indexFile = await readFileAsync(indexFileLocation);
 					res.writeHead(200);
 					res.end(indexFile);
 				} else if (requestUrl.startsWith('/ws/')) {

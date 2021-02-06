@@ -7,7 +7,7 @@ window.registerPlugin('screens', function initPlugin({ log, state, setResource }
 	function MainScreen() {
 		return (
 			<div css={{ color: 'green' }}>
-				Custom main screen3
+				Custom main screen
 			</div>
 		)
 	}

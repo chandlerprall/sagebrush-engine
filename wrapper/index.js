@@ -4,7 +4,7 @@ app.commandLine.appendSwitch ('disable-http-cache');
 const { startServer } = require('../server/build');
 
 function start(config) {
-	const { pluginDirectory } = config;
+	const { indexFileLocation, pluginDirectory } = config;
 
 	const IS_DEVELOPMENT = true;
 
@@ -69,7 +69,7 @@ function start(config) {
 	}
 
 	let server;
-	const startupPromises = [startServer({ pluginDirectory }), app.whenReady()];
+	const startupPromises = [startServer({ indexFileLocation, pluginDirectory }), app.whenReady()];
 	Promise.all(startupPromises).then(([_server]) => {
 		server = _server;
 		const serverPort = server.address().port;
