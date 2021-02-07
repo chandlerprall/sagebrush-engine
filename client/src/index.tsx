@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import * as EmotionReactJsxRuntime from '@emotion/react/jsx-runtime';
 import App from './App';
+import './events';
 
 declare global {
 	interface Window {

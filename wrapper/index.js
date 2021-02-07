@@ -4,7 +4,7 @@ app.commandLine.appendSwitch ('disable-http-cache');
 const { startServer } = require('../server/build');
 
 function start(config) {
-	const { indexFileLocation, pluginDirectory } = config;
+	const { serverConfig, getBrowserWindowConfig, onWindowLoad } = config;
 
 	const IS_DEVELOPMENT = true;
 
@@ -43,9 +43,10 @@ function start(config) {
 			});
 		});
 
-		const win = new BrowserWindow({
+		let windowConfig = {
 			width: 800,
 			height: 600,
+			resizable: false,
 			webPreferences: {
 				sandbox: true,
 				contextIsolation: true,
@@ -53,7 +54,12 @@ function start(config) {
 
 				textAreasAreResizable: false,
 			},
-		});
+		};
+		if (getBrowserWindowConfig != null) {
+			windowConfig = getBrowserWindowConfig(windowConfig);
+		}
+		const win = new BrowserWindow(windowConfig);
+		win.setMenu(null);
 		if (IS_DEVELOPMENT) {
 			win.webContents.openDevTools({
 				mode: 'detach',
@@ -64,12 +70,14 @@ function start(config) {
 		// to show something immediately, load the placeholder initializing file first
 		// and then load the actual application
 		win.loadFile('initializing.html').then(() => {
-			win.loadURL(SERVER_ADDRESS);
+			win.loadURL(SERVER_ADDRESS).then(() => {
+				if (onWindowLoad != null) onWindowLoad(win);
+			});
 		});
 	}
 
 	let server;
-	const startupPromises = [startServer({ indexFileLocation, pluginDirectory }), app.whenReady()];
+	const startupPromises = [startServer(serverConfig), app.whenReady()];
 	Promise.all(startupPromises).then(([_server]) => {
 		server = _server;
 		const serverPort = server.address().port;

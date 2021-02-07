@@ -62,7 +62,7 @@ onEvent('LOAD_PLUGINS', () => {
 	};
 
 	onMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
-	messageServer('DISCOVER_PLUGINS', {});
+	messageServer('DISCOVER_PLUGINS', null);
 });
 
 onEvent('PLUGIN_LOADED', plugin => {

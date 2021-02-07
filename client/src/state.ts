@@ -5,16 +5,19 @@ import MainScreen from './MainScreen';
 
 declare global {
 	namespace App {
+		interface App {
+			currentScreen: Accessor<ComponentType>;
+		}
+		interface UiScreens {
+			loading: ComponentType;
+			main: ComponentType;
+		}
+		interface Ui {
+			screens: UiScreens;
+		}
 		interface State {
-			app: {
-				currentScreen: Accessor<ComponentType>;
-			};
-			ui: {
-				screens: {
-					loading: ComponentType;
-					main: ComponentType;
-				};
-			};
+			app: App;
+			ui: Ui;
 		}
 
 		interface Events {

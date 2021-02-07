@@ -1,3 +1,4 @@
+import { app, BrowserWindowConstructorOptions } from 'electron';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { readFile } from 'fs';
 import { promisify } from 'util';
@@ -15,6 +16,7 @@ export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
 interface StartServerConfig {
 	indexFileLocation: string;
 	pluginDirectory: string;
+	getBrowserWindowConfig: (config: BrowserWindowConstructorOptions) => BrowserWindowConstructorOptions
 }
 export function startServer(config: StartServerConfig) {
 	const { indexFileLocation, pluginDirectory } = config;
@@ -77,6 +79,8 @@ export function startServer(config: StartServerConfig) {
 							plugins,
 						},
 					});
+				} else if (type === 'EXIT') {
+					app.exit();
 				}
 			});
 			client.on('disconnect', () => {});

@@ -31,16 +31,19 @@ declare module "state" {
     import { ComponentType } from 'react';
     global {
         namespace App {
+            interface App {
+                currentScreen: Accessor<ComponentType>;
+            }
+            interface UiScreens {
+                loading: ComponentType;
+                main: ComponentType;
+            }
+            interface Ui {
+                screens: UiScreens;
+            }
             interface State {
-                app: {
-                    currentScreen: Accessor<ComponentType>;
-                };
-                ui: {
-                    screens: {
-                        loading: ComponentType;
-                        main: ComponentType;
-                    };
-                };
+                app: App;
+                ui: Ui;
             }
             interface Events {
                 FINISHED_LOADING_PLUGINS: null;
@@ -109,7 +112,8 @@ declare module "socket" {
         namespace App {
             namespace Messages {
                 interface FromClient {
-                    DISCOVER_PLUGINS: {};
+                    DISCOVER_PLUGINS: null;
+                    EXIT: null;
                 }
                 interface FromServer {
                     DISCOVER_PLUGINS_RESULT: {
@@ -126,6 +130,15 @@ declare module "socket" {
     export default function Socket({ children }: {
         children: ReactNode;
     }): ReactElement;
+}
+declare module "events" {
+    global {
+        namespace App {
+            interface Events {
+                'APP.EXIT': null;
+            }
+        }
+    }
 }
 declare module "plugins" {
     import Plugin, { PluginFunctions } from "Plugin";
@@ -164,4 +177,12 @@ declare module "App" {
     import "plugins";
     export default function App(): JSX.Element;
 }
-declare module "index" { }
+declare module "index" {
+    import * as EmotionReactJsxRuntime from '@emotion/react/jsx-runtime';
+    import "events";
+    global {
+        interface Window {
+            EmotionReactJsxRuntime: typeof EmotionReactJsxRuntime;
+        }
+    }
+}

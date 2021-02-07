@@ -9,6 +9,7 @@ start({
 
 	// modify the default options when creating the Electron window
 	getBrowserWindowConfig(config) {
+		config.height = config.width = 500;
 		return config;
 	},
 

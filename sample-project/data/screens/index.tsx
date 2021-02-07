@@ -1,6 +1,6 @@
 import React from 'react';
 
-window.registerPlugin('screens', function initPlugin({ log, state, setResource }) {
+window.registerPlugin('screens', function initPlugin({ log, state, setResource, dispatchEvent }) {
 	log.enabled = true;
 	log.level = 'debug';
 
@@ -8,6 +8,8 @@ window.registerPlugin('screens', function initPlugin({ log, state, setResource }
 		return (
 			<div css={{ color: 'green' }}>
 				Custom main screen
+				<br/><br/>
+				<button onClick={() => dispatchEvent('APP.EXIT', null)}>Quit</button>
 			</div>
 		)
 	}

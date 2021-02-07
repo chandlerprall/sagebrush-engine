@@ -5,7 +5,8 @@ declare global {
 	namespace App {
 		namespace Messages {
 			interface FromClient {
-				DISCOVER_PLUGINS: {};
+				DISCOVER_PLUGINS: null;
+				EXIT: null;
 			}
 			interface FromServer {
 				DISCOVER_PLUGINS_RESULT: {
