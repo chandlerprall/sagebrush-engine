@@ -1,8 +1,9 @@
 import React from 'react';
 import { css } from '@emotion/react';
 import { Button } from '../Button';
+import { PluginFunctions } from 'Plugin';
 
-export default ({ dispatchEvent }: { dispatchEvent: Function }) => function MainScreen() {
+export default ({ dispatchEvent }: PluginFunctions) => function MainScreen() {
 	return (
 		<>
 			<h1 css={css`
@@ -24,9 +25,9 @@ export default ({ dispatchEvent }: { dispatchEvent: Function }) => function Main
 					width: 100%;
 					text-align: center;
 				`}>
-				<Button size="l" onClick={undefined}>Classic</Button>
+				<Button size="l" onClick={() => dispatchEvent('START_GAME', { type: 'classic' })}>Classic</Button>
 				<br/><br/>
-				<Button size="l" onClick={undefined}>Timed</Button>
+				<Button size="l" onClick={() => dispatchEvent('START_GAME', { type: 'timed' })}>Timed</Button>
 				<br/><br/>
 				<Button size="l" onClick={() => dispatchEvent('APP.EXIT', null)}>Quit</Button>
 			</div>

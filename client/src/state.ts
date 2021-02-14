@@ -5,19 +5,29 @@ import MainScreen from './MainScreen';
 
 declare global {
 	namespace App {
+		// general application state
 		interface App {
 			currentScreen: Accessor<ComponentType>;
 		}
+
+		// screens available
 		interface UiScreens {
 			loading: ComponentType;
 			main: ComponentType;
 		}
+
+		// ui interfaces
 		interface Ui {
 			screens: UiScreens;
 		}
+
+		// saveable/loadbale application state
+		interface Data {}
+
 		interface State {
 			app: App;
 			ui: Ui;
+			data: Data;
 		}
 
 		interface Events {
@@ -36,6 +46,7 @@ export const store = new Store<App.State>({
 			main: MainScreen,
 		},
 	},
+	data: {},
 	plugins: {
 		discovered: [],
 		loaded: [],
@@ -132,6 +143,14 @@ function resolvePossiblePointer<T>(accessor: T): string[] {
 	return selector;
 }
 
+// React will throw away a setState operation if the same object/array is passed
+// so clone objects/arrays when alerted that they have changed
+function makeUnused(value: any) {
+	if (Array.isArray(value)) return [...value];
+	if (value != null && typeof value === 'object')  return {...value};
+	return value;
+}
+
 export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 	const store: Store<App.State> = (accessor as any).__store;
 	const rawSelector: string[] = (accessor as any).__path;
@@ -142,13 +161,13 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 	useEffect(() => {
 		// it's possible for a value to have changed between the initial render and this useEffect firing
 		const currentValue = store.getPartialState(resolvedSelector);
-		setValue(() => currentValue);
+		setValue(() => makeUnused(currentValue));
 
 		const subscriptions: Function[] = [];
 
 		if (rawSelector.join() === resolvedSelector.join()) {
 			subscriptions.push(store.subscribeToState([rawSelector], ([value]) => {
-				setValue(() => value);
+				setValue(() => makeUnused(value));
 			}));
 		} else {
 			// watch pointer

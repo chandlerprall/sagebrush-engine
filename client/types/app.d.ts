@@ -41,9 +41,12 @@ declare module "state" {
             interface Ui {
                 screens: UiScreens;
             }
+            interface Data {
+            }
             interface State {
                 app: App;
                 ui: Ui;
+                data: Data;
             }
             interface Events {
                 FINISHED_LOADING_PLUGINS: null;
@@ -74,7 +77,7 @@ declare module "state" {
     export const state: Accessor<App.State, false>;
 }
 declare module "Plugin" {
-    import { useResource, setResource, state } from "state";
+    import { getResource, useResource, setResource, state } from "state";
     import Log from "Log";
     export interface PluginFunctions {
         state: typeof state;
@@ -82,6 +85,7 @@ declare module "Plugin" {
         onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
         offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
         useResource: typeof useResource;
+        getResource: typeof getResource;
         setResource: typeof setResource;
         log: Log;
     }

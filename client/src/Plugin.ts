@@ -1,4 +1,4 @@
-import { onEvent, offEvent, dispatchEvent, useResource, setResource, state } from './state';
+import { onEvent, offEvent, dispatchEvent, getResource, useResource, setResource, state } from './state';
 import Log from './Log';
 
 export interface PluginFunctions {
@@ -7,6 +7,7 @@ export interface PluginFunctions {
 	onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
 	offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
 	useResource: typeof useResource,
+	getResource: typeof getResource,
 	setResource: typeof setResource,
 	log: Log;
 }
@@ -26,7 +27,7 @@ export default class Plugin {
 	private dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
 		dispatchEvent(event, payload);
 	}
-	private onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
+	private onEvent = <Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) => {
 		this.eventSubscriptions.push([event, listener]);
 		onEvent(event, listener);
 	}
@@ -51,6 +52,7 @@ export default class Plugin {
 			dispatchEvent: this.dispatchEvent,
 			onEvent: this.onEvent,
 			offEvent: this.offEvent,
+			getResource,
 			setResource,
 			useResource,
 			log: this.log,
