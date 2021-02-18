@@ -7,6 +7,7 @@ declare global {
 	namespace App {
 		// general application state
 		interface App {
+			isLoadingSave: boolean;
 			currentScreen: Accessor<ComponentType>;
 		}
 
@@ -21,13 +22,17 @@ declare global {
 			screens: UiScreens;
 		}
 
-		// saveable/loadbale application state
+		// customizable application state
 		interface Data {}
+
+		// array of save id & metadata
+		type Saves = Array<{ id: string, meta: any }>
 
 		interface State {
 			app: App;
 			ui: Ui;
 			data: Data;
+			saves: Saves;
 		}
 
 		interface Events {
@@ -38,6 +43,7 @@ declare global {
 
 export const store = new Store<App.State>({
 	app: {
+		isLoadingSave: false,
 		currentScreen: undefined as any, // fulfilled after `state` accessor is created below
 	},
 	ui: {
@@ -50,7 +56,8 @@ export const store = new Store<App.State>({
 	plugins: {
 		discovered: [],
 		loaded: [],
-	}
+	},
+	saves: [],
 });
 
 type primitive = string | number | boolean | undefined | null;

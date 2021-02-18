@@ -32,6 +32,7 @@ declare module "state" {
     global {
         namespace App {
             interface App {
+                isLoadingSave: boolean;
                 currentScreen: Accessor<ComponentType>;
             }
             interface UiScreens {
@@ -43,10 +44,15 @@ declare module "state" {
             }
             interface Data {
             }
+            type Saves = Array<{
+                id: string;
+                meta: any;
+            }>;
             interface State {
                 app: App;
                 ui: Ui;
                 data: Data;
+                saves: Saves;
             }
             interface Events {
                 FINISHED_LOADING_PLUGINS: null;
@@ -79,6 +85,7 @@ declare module "state" {
 declare module "Plugin" {
     import { getResource, useResource, setResource, state } from "state";
     import Log from "Log";
+    export type SaveableData = Object | Array<any>;
     export interface PluginFunctions {
         state: typeof state;
         dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
@@ -87,13 +94,17 @@ declare module "Plugin" {
         useResource: typeof useResource;
         getResource: typeof getResource;
         setResource: typeof setResource;
+        onGetSaveData: (fn: () => SaveableData) => void;
+        onFromSaveData: (fn: (data: SaveableData) => void) => void;
         log: Log;
     }
     export default class Plugin {
-        private name;
+        name: string;
         description: string;
         version: string;
         entry: string;
+        getSaveData: (() => SaveableData) | undefined;
+        fromSaveData: ((data: SaveableData) => void) | undefined;
         private log;
         private eventSubscriptions;
         initializer?: (args: PluginFunctions) => void | (() => void);
@@ -105,6 +116,8 @@ declare module "Plugin" {
         isLoaded: boolean;
         loadingPromise: Promise<undefined | Event | string>;
         constructor(definition: App.PluginDefinition);
+        private setOnGetSaveData;
+        private setOnFromSaveData;
         load(): Promise<undefined | Event | string>;
         initialize(): Promise<any>;
         deinitialize(): void;
@@ -112,18 +125,43 @@ declare module "Plugin" {
 }
 declare module "socket" {
     import { ReactNode, ReactElement } from 'react';
+    import { SaveableData } from "Plugin";
     global {
         namespace App {
             namespace Messages {
                 interface FromClient {
                     DISCOVER_PLUGINS: null;
                     EXIT: null;
+                    SAVE: {
+                        id: string;
+                        meta: SaveableData;
+                        data: SaveableData;
+                    };
+                    GET_SAVES: null;
+                    LOAD_SAVE: {
+                        id: string;
+                    };
+                    DELETE_SAVE: {
+                        id: string;
+                    };
                 }
                 interface FromServer {
                     DISCOVER_PLUGINS_RESULT: {
                         plugins: PluginDefinition[];
                     };
                     RELOAD_PLUGIN: PluginDefinition;
+                    GET_SAVES_RESULT: {
+                        saves: Array<{
+                            id: string;
+                            meta: any;
+                        }>;
+                    };
+                    LOAD_SAVE_RESULT: {
+                        id: string;
+                        data: {
+                            [key: string]: SaveableData;
+                        };
+                    };
                 }
             }
         }
@@ -135,17 +173,8 @@ declare module "socket" {
         children: ReactNode;
     }): ReactElement;
 }
-declare module "events" {
-    global {
-        namespace App {
-            interface Events {
-                'APP.EXIT': null;
-            }
-        }
-    }
-}
 declare module "plugins" {
-    import Plugin, { PluginFunctions } from "Plugin";
+    import Plugin, { PluginFunctions, SaveableData } from "Plugin";
     global {
         namespace App {
             interface PluginDefinition {
@@ -174,6 +203,33 @@ declare module "plugins" {
     global {
         interface Window {
             registerPlugin(name: string, initializer: (arg: PluginFunctions) => void | (() => void)): void;
+        }
+    }
+    export function collectPluginSaveData(): {
+        [key: string]: SaveableData;
+    };
+    export function setPluginSaveData(data: {
+        [key: string]: SaveableData;
+    }): void;
+}
+declare module "events" {
+    import { SaveableData } from "Plugin";
+    global {
+        namespace App {
+            interface Events {
+                'APP.EXIT': null;
+                'APP.SAVE': {
+                    id: string;
+                    meta: SaveableData;
+                };
+                'APP.GET_SAVES': null;
+                'APP.LOAD_SAVE': {
+                    id: string;
+                };
+                'APP.DELETE_SAVE': {
+                    id: string;
+                };
+            }
         }
     }
 }

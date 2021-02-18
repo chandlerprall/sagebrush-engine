@@ -10,6 +10,7 @@ interface PackageDetails {
 	version: string;
 	description: string;
 	entry: string;
+	directory: string;
 }
 
 function isPackageDetails(x: any): x is PackageDetails {
@@ -71,7 +72,7 @@ export async function discoverPlugin(pluginDirectory: string, packageLocation: s
 
 			const relativeEntry = join('plugins', relative(pluginDirectory, entry)).replace(/\\/g, '/');
 
-			resolve({ name, version, description, entry: relativeEntry });
+			resolve({ name, version, description, entry: relativeEntry, directory: packageDirectory });
 		} catch(e) {
 			reject(e);
 		}

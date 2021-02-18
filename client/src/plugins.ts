@@ -1,6 +1,9 @@
 import { state, onEvent, dispatchEvent, setResource, getResource } from './state';
 import { messageServer, onMessage, offMessage } from './socket';
-import Plugin, { PluginFunctions } from './Plugin';
+import Plugin, { PluginFunctions, SaveableData } from './Plugin';
+import Log from './Log';
+
+const log = new Log('plugins');
 
 declare global {
 	namespace App {
@@ -40,11 +43,35 @@ const plugins = new Map<string, Plugin>();
 window.registerPlugin = (name, initializer) => {
 	const plugin = plugins.get(name);
 	if (plugin == null) {
-		console.error(`No matching plugin for "${name}" orchestration`);
+		log.error(`No matching plugin for "${name}" orchestration`);
 	} else {
 		plugin.initializer = initializer;
 	}
 };
+
+export function collectPluginSaveData() {
+	const data: { [key: string]: SaveableData } = {};
+	log.debug('collecting plugin save data');
+	const pluginsArray = plugins.entries();
+	for (const [name, plugin] of pluginsArray) {
+		log.debug(`getting save data from ${name}`);
+		const pluginData = plugin.getSaveData?.();
+		if (pluginData) {
+			log.debug(pluginData);
+			data[name] = pluginData;
+		}
+	}
+	return data;
+}
+
+export function setPluginSaveData(data: { [key: string]: SaveableData }) {
+	const pluginsArray = plugins.entries();
+	for (const [name, plugin] of pluginsArray) {
+		if (plugin.fromSaveData && data.hasOwnProperty(name)) {
+			plugin.fromSaveData(data[name]);
+		}
+	}
+}
 
 onEvent('LOAD_PLUGINS', () => {
 	const onDiscoverPluginsResult: (payload: App.Messages.FromServer['DISCOVER_PLUGINS_RESULT']) => void = ({ plugins: discoveredPlugins }) => {
@@ -84,10 +111,10 @@ onEvent('INITIALIZE_PLUGINS', () => {
 	}
 	Promise.all(initPromises)
 		.then(() => {
-			console.log('plugins initialized');
+			log.info('plugins initialized');
 		})
 		.catch(e => {
-			console.error(e);
+			log.error(e);
 		});
 });
 
@@ -98,7 +125,7 @@ onEvent('FINISHED_LOADING_PLUGINS', () => {
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {
 	const plugin = plugins.get(pluginDef.name);
 	if (plugin === undefined) {
-		console.error(`Cannot reload plugin "${pluginDef.name}": plugin not loaded`);
+		log.error(`Cannot reload plugin "${pluginDef.name}": plugin not loaded`);
 		return;
 	}
 

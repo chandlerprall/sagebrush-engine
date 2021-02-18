@@ -1,5 +1,6 @@
 import React, { ReactNode, ReactElement } from 'react';
 import { io as ClientSocket } from 'socket.io-client';
+import { SaveableData } from './Plugin';
 
 declare global {
 	namespace App {
@@ -7,12 +8,18 @@ declare global {
 			interface FromClient {
 				DISCOVER_PLUGINS: null;
 				EXIT: null;
+				SAVE: { id: string, meta: SaveableData, data: SaveableData },
+				GET_SAVES: null;
+				LOAD_SAVE: { id: string };
+				DELETE_SAVE: { id: string };
 			}
 			interface FromServer {
 				DISCOVER_PLUGINS_RESULT: {
 					plugins: PluginDefinition[];
 				}
-				RELOAD_PLUGIN: PluginDefinition
+				RELOAD_PLUGIN: PluginDefinition;
+				GET_SAVES_RESULT: { saves: Array<{ id: string, meta: any }> };
+				LOAD_SAVE_RESULT: { id: string, data: { [key: string]: SaveableData } };
 			}
 		}
 	}

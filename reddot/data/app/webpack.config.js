@@ -8,7 +8,7 @@ module.exports = {
 	entry: join(__dirname, 'src', 'index.tsx'),
 
 	output: {
-		path: join(__dirname, 'build'),
+		path: join(__dirname, 'dist'),
 		filename: 'index.js',
 	},
 

@@ -1,7 +1,6 @@
 import { app, BrowserWindowConstructorOptions } from 'electron';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { readFile } from 'fs';
-import { promisify } from 'util';
+import { promises as fspromises } from 'fs';
 import { join } from 'path';
 import SocketIo from 'socket.io';
 import chokidar from 'chokidar';
@@ -9,7 +8,7 @@ import chokidar from 'chokidar';
 import findup from 'findup';
 import { discoverPlugin, discoverPlugins } from './plugins';
 
-const readFileAsync = promisify(readFile);
+const { readFile, open, writeFile, mkdir, readdir, stat, unlink } = fspromises;
 
 export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
 
@@ -20,6 +19,9 @@ interface StartServerConfig {
 }
 export function startServer(config: StartServerConfig) {
 	const { indexFileLocation, pluginDirectory } = config;
+
+	const userDataPath = app.getPath('userData');
+	const savesPath = join(userDataPath, 'saves');
 
 	return new Promise(resolve => {
 		const server = createServer();
@@ -37,6 +39,7 @@ export function startServer(config: StartServerConfig) {
 
 					const pluginsToReload: string[] = [];
 					let pluginsReloadTimeout: undefined | NodeJS.Timeout = undefined;
+
 					async function performPluginsReload() {
 						pluginsReloadTimeout = undefined;
 						const foundPlugins = new Set<string>();
@@ -52,18 +55,21 @@ export function startServer(config: StartServerConfig) {
 						}
 						pluginsToReload.length = 0;
 					}
+
 					function schedulePluginReload(packagePath: string) {
 						pluginsToReload.push(packagePath);
 						if (pluginsReloadTimeout === undefined) {
 							pluginsReloadTimeout = setTimeout(performPluginsReload, 1000);
 						}
 					}
+
 					function reloadPlugin(path: string) {
 						const packagePath = join(findup.sync(path, 'package.json'), 'package.json');
 						schedulePluginReload(packagePath);
 					}
+
 					const pluginWatcher = chokidar.watch(
-						pluginDirectory,
+						plugins.map(({ directory }) => join(directory, 'dist')),
 						{
 							disableGlobbing: true,
 						}
@@ -79,6 +85,57 @@ export function startServer(config: StartServerConfig) {
 							plugins,
 						},
 					});
+				} else if (type === 'SAVE') {
+					const { id, meta, data: savedata } = data.payload;
+
+					await mkdir(savesPath, { recursive: true });
+
+					const saveFilePath = join(savesPath, id);
+
+					// file format:
+					// [length of meta][:][meta][savedata]
+					const metastring = JSON.stringify(meta);
+					const datastring = JSON.stringify(savedata);
+
+					const filehandle = await open(saveFilePath, 'w');
+					await writeFile(filehandle, `${metastring.length}:${metastring}${datastring}`);
+					await filehandle.close();
+				} else if (type === 'GET_SAVES') {
+					const entries = await readdir(savesPath);
+
+					const savesMeta: Array<{ id: string, meta: any }> = [];
+					for (let i = 0; i < entries.length; i++) {
+						try {
+							savesMeta.push(await readSaveMeta(entries[i]));
+						} catch (e) {
+							console.error(e)
+						}
+					}
+
+					client.send({
+						type: 'GET_SAVES_RESULT',
+						payload: {
+							saves: savesMeta,
+						},
+					});
+				} else if (type === 'LOAD_SAVE') {
+					const { id } = data.payload;
+					try {
+						client.send({
+							type: 'LOAD_SAVE_RESULT',
+							payload: await readSaveData(id)
+						});
+					} catch(e) {
+						console.error(e);
+					}
+				} else if (type === 'DELETE_SAVE') {
+					const { id } = data.payload;
+					const saveFilePath = join(savesPath, id);
+					try {
+						await unlink(saveFilePath)
+					} catch(e) {
+						console.error(e);
+					}
 				} else if (type === 'EXIT') {
 					app.exit();
 				}
@@ -92,7 +149,7 @@ export function startServer(config: StartServerConfig) {
 				const requestUrl = req.url || '/';
 
 				if (requestUrl === '/') {
-					const indexFile = await readFileAsync(indexFileLocation);
+					const indexFile = await readFile(indexFileLocation);
 					res.writeHead(200);
 					res.end(indexFile);
 				} else if (requestUrl.startsWith('/ws/')) {
@@ -102,7 +159,7 @@ export function startServer(config: StartServerConfig) {
 					const requestPath = requestUrl.replace('/client/', '');
 					const requestTarget = join(CLIENT_PATH, requestPath);
 					try {
-						const file = await readFileAsync(requestTarget);
+						const file = await readFile(requestTarget);
 						res.writeHead(200);
 						res.end(file);
 					} catch {
@@ -113,7 +170,7 @@ export function startServer(config: StartServerConfig) {
 					const requestPath = requestUrl.replace('/plugins/', '');
 					const requestTarget = join(pluginDirectory, requestPath);
 					try {
-						const file = await readFileAsync(requestTarget);
+						const file = await readFile(requestTarget);
 						res.writeHead(200);
 						res.end(file);
 					} catch {
@@ -128,4 +185,62 @@ export function startServer(config: StartServerConfig) {
 			},
 		);
 	});
+
+	async function readSaveMeta(id: string): Promise<{ id: string, meta: any }> {
+		const savePath = join(savesPath, id);
+		const filehandle = await open(savePath, 'r');
+		const metasizeBuffer = Buffer.alloc(255);
+		await filehandle.read(metasizeBuffer, 0, 255, 0);
+
+		let metasizeString = '';
+		for (let i = 0; metasizeBuffer.length; i++) {
+			if (metasizeBuffer[i] === 58) {
+				break;
+			} else {
+				metasizeString += String.fromCharCode(metasizeBuffer[i]);
+			}
+		}
+
+		const metasize = parseInt(metasizeString, 10);
+
+		const metaBuffer = Buffer.alloc(metasize);
+		await filehandle.read(metaBuffer, 0, metasize, metasizeString.length + 1);
+		const meta = JSON.parse(metaBuffer.toString());
+
+		await filehandle.close();
+
+		return { id, meta };
+	}
+
+	async function readSaveData(id: string): Promise<{ id: string, data: any }> {
+		const savePath = join(savesPath, id);
+		const filehandle = await open(savePath, 'r');
+		const metasizeBuffer = Buffer.alloc(255);
+		await filehandle.read(metasizeBuffer, 0, 255, 0);
+
+		let metasizeString = '';
+		for (let i = 0; metasizeBuffer.length; i++) {
+			if (metasizeBuffer[i] === 58) {
+				break;
+			} else {
+				metasizeString += String.fromCharCode(metasizeBuffer[i]);
+			}
+		}
+
+		const metasize = parseInt(metasizeString, 10);
+
+		const stats = await stat(savePath);
+		const filebytes = stats.size;
+
+		const nondataBytes = metasizeString.length + 1 + metasize;
+		const databytes = filebytes - nondataBytes;
+
+		const dataBuffer = Buffer.alloc(databytes);
+		await filehandle.read(dataBuffer, 0, databytes, nondataBytes);
+		const data = JSON.parse(dataBuffer.toString());
+
+		await filehandle.close();
+
+		return { id, data };
+	}
 }

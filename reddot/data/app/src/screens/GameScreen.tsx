@@ -3,7 +3,7 @@ import { css, keyframes } from '@emotion/react';
 import { PluginFunctions } from 'Plugin';
 import { Button } from '../Button';
 
-function formatSeconds(seconds: number) {
+export function formatSeconds(seconds: number) {
 	const remainingMinutes = Math.floor(seconds / 60);
 	const remainingSeconds = seconds - remainingMinutes * 60;
 	return `${remainingMinutes > 0 ? `${remainingMinutes}:`: ''}${remainingSeconds < 10 ? `0${remainingSeconds}` : remainingSeconds}`;
@@ -21,7 +21,7 @@ to {
 }
 `;
 
-export default ({ dispatchEvent, setResource, useResource, state }: PluginFunctions) => function GameScreen() {
+function Game({ dispatchEvent, setResource, useResource, state }: PluginFunctions) {
 	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(state.data);
 
 	useEffect(() => {
@@ -87,7 +87,7 @@ export default ({ dispatchEvent, setResource, useResource, state }: PluginFuncti
 				`}
 				onClick={(e) => {
 					e.stopPropagation();
-					setResource(state.app.currentScreen, state.ui.screens.main)
+					dispatchEvent('GOTO_MENU', null);
 				}}
 			>
 				back
@@ -106,10 +106,10 @@ export default ({ dispatchEvent, setResource, useResource, state }: PluginFuncti
 				outline-width: 0;
 				transform: translate(-50%, -50%);
 			`}
-			onClick={(e) => {
-				e.stopPropagation();
-				dispatchEvent('DOT_CLICKED', null)
-			}}
+							onClick={(e) => {
+								e.stopPropagation();
+								dispatchEvent('DOT_CLICKED', null)
+							}}
 			/>
 
 			{
@@ -139,14 +139,24 @@ export default ({ dispatchEvent, setResource, useResource, state }: PluginFuncti
 							left: 50%;
 							transform: translate(-50%, -50%);
 						`}
-							onClick={(e) => {
-								e.stopPropagation();
-								setResource(state.app.currentScreen, state.ui.screens.main)
-							}}
+										onClick={(e) => {
+											e.stopPropagation();
+											setResource(state.app.currentScreen, state.ui.screens.main)
+										}}
 						>return to menu</Button>
 					</>
 				)
 			}
 		</div>
-	)
+	);
+}
+
+export default (fns: PluginFunctions) => function GameScreen() {
+	const { useResource, state } = fns;
+	const isLoadingSave = useResource(state.app.isLoadingSave);
+
+	return isLoadingSave
+		? <></>
+		: <Game {...fns} />
+	;
 }

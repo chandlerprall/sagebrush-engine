@@ -1,6 +1,8 @@
 import { onEvent, offEvent, dispatchEvent, getResource, useResource, setResource, state } from './state';
 import Log from './Log';
 
+export type SaveableData = Object | Array<any>;
+
 export interface PluginFunctions {
 	state: typeof state;
 	dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
@@ -9,14 +11,18 @@ export interface PluginFunctions {
 	useResource: typeof useResource,
 	getResource: typeof getResource,
 	setResource: typeof setResource,
+	onGetSaveData: (fn: () => SaveableData) => void,
+	onFromSaveData: (fn: (data: SaveableData) => void) => void,
 	log: Log;
 }
 
 export default class Plugin {
-	private name: string;
+	public name: string;
 	public description: string;
 	public version: string;
 	public entry: string;
+	public getSaveData: (() => SaveableData) | undefined;
+	public fromSaveData: ((data: SaveableData) => void) | undefined;
 
 	private log: Log;
 	private eventSubscriptions: Array<[string, Function]> = [];
@@ -52,15 +58,25 @@ export default class Plugin {
 			dispatchEvent: this.dispatchEvent,
 			onEvent: this.onEvent,
 			offEvent: this.offEvent,
+			onGetSaveData: this.setOnGetSaveData,
+			onFromSaveData: this.setOnFromSaveData,
+			log: this.log,
 			getResource,
 			setResource,
 			useResource,
-			log: this.log,
 		};
 
 		this.isLoaded = false;
 		this.loadingPromise = this.load();
 		this.loadingPromise.then(() => this.isLoaded = true);
+	}
+
+	private setOnGetSaveData = (onGetSaveData: () => SaveableData) => {
+		this.getSaveData = onGetSaveData;
+	}
+
+	private setOnFromSaveData = (onFromSaveData: (data: SaveableData) => void) => {
+		this.fromSaveData = onFromSaveData;
 	}
 
 	async load(): Promise<undefined | Event | string> {
