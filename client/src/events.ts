@@ -1,6 +1,6 @@
 import { onEvent, state, getResource, setResource } from './state';
 import { messageServer, onMessage } from './socket';
-import { collectPluginSaveData, setPluginSaveData } from './plugins';
+import { collectPluginConfigData, collectPluginSaveData, setPluginSaveData } from './plugins';
 import { SaveableData } from './Plugin';
 
 declare global {
@@ -11,6 +11,8 @@ declare global {
 			'APP.GET_SAVES': null;
 			'APP.LOAD_SAVE': { id: string };
 			'APP.DELETE_SAVE': { id: string };
+			'APP.SAVE_CONFIG': null;
+			'APP.LOAD_CONFIG': null;
 		}
 	}
 }
@@ -51,4 +53,19 @@ onEvent('APP.DELETE_SAVE', ({ id }) => {
 	const saves = getResource(state.saves);
 	const newSaves = saves.filter(({ id: saveId }) => saveId !== id);
 	setResource(state.saves, newSaves);
+});
+
+onEvent('APP.SAVE_CONFIG', () => {
+	const data = collectPluginConfigData();
+	messageServer('SAVE_CONFIG', data);
+});
+onEvent('APP.LOAD_CONFIG', () => {
+	messageServer('LOAD_CONFIG', null);
+});
+onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
+	console.log('LOAD_SAVE_RESULT', id, data)
+	if (id === lastSaveId) {
+		setPluginSaveData(data);
+		setResource(state.app.isLoadingSave, false);
+	}
 });

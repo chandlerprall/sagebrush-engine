@@ -12,6 +12,8 @@ declare global {
 				GET_SAVES: null;
 				LOAD_SAVE: { id: string };
 				DELETE_SAVE: { id: string };
+				SAVE_CONFIG: SaveableData;
+				LOAD_CONFIG: null;
 			}
 			interface FromServer {
 				DISCOVER_PLUGINS_RESULT: {
@@ -20,6 +22,7 @@ declare global {
 				RELOAD_PLUGIN: PluginDefinition;
 				GET_SAVES_RESULT: { saves: Array<{ id: string, meta: any }> };
 				LOAD_SAVE_RESULT: { id: string, data: { [key: string]: SaveableData } };
+				LOAD_CONFIG_RESULT: SaveableData;
 			}
 		}
 	}

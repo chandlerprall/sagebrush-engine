@@ -13,6 +13,8 @@ export interface PluginFunctions {
 	setResource: typeof setResource,
 	onGetSaveData: (fn: () => SaveableData) => void,
 	onFromSaveData: (fn: (data: SaveableData) => void) => void,
+	onGetConfigData: (fn: () => SaveableData) => void,
+	onFromConfigData: (fn: (data: SaveableData) => void) => void,
 	log: Log;
 }
 
@@ -23,6 +25,8 @@ export default class Plugin {
 	public entry: string;
 	public getSaveData: (() => SaveableData) | undefined;
 	public fromSaveData: ((data: SaveableData) => void) | undefined;
+	public getConfigData: (() => SaveableData) | undefined;
+	public fromConfigData: ((data: SaveableData) => void) | undefined;
 
 	private log: Log;
 	private eventSubscriptions: Array<[string, Function]> = [];
@@ -60,6 +64,8 @@ export default class Plugin {
 			offEvent: this.offEvent,
 			onGetSaveData: this.setOnGetSaveData,
 			onFromSaveData: this.setOnFromSaveData,
+			onGetConfigData: this.setOnGetConfigData,
+			onFromConfigData: this.setOnFromConfigData,
 			log: this.log,
 			getResource,
 			setResource,
@@ -77,6 +83,14 @@ export default class Plugin {
 
 	private setOnFromSaveData = (onFromSaveData: (data: SaveableData) => void) => {
 		this.fromSaveData = onFromSaveData;
+	}
+
+	private setOnGetConfigData = (onGetConfigData: () => SaveableData) => {
+		this.getConfigData = onGetConfigData;
+	}
+
+	private setOnFromConfigData = (onFromConfigData: (data: SaveableData) => void) => {
+		this.fromConfigData = onFromConfigData;
 	}
 
 	async load(): Promise<undefined | Event | string> {

@@ -7,10 +7,13 @@ import { formatSeconds } from './GameScreen';
 export default ({ dispatchEvent, useResource, state }: PluginFunctions) => function MainScreen() {
 	useEffect(() => {
 		dispatchEvent('APP.GET_SAVES', null);
+		dispatchEvent('APP.LOAD_CONFIG', null);
 	}, []);
 
 	const saves = useResource(state.saves);
-	const save: undefined | { id: string, meta: App.Data } = saves[0];
+	const save: undefined | { id: string, meta: App.Data['game'] } = saves[0];
+
+	const highscore = useResource(state.data.config.highscore);
 
 	return (
 		<>
@@ -26,6 +29,19 @@ export default ({ dispatchEvent, useResource, state }: PluginFunctions) => funct
 				`}>
 				Red Dot
 			</h1>
+			{
+				highscore != null && (
+					<div css={css`
+					position: absolute;
+					top: 100px;
+					width: 100%;
+					text-align: center;
+					font-weight: bold;
+				`}>
+						highscore: {highscore}
+					</div>
+				)
+			}
 
 			{
 				save && (

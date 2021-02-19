@@ -22,6 +22,7 @@ export function startServer(config: StartServerConfig) {
 
 	const userDataPath = app.getPath('userData');
 	const savesPath = join(userDataPath, 'saves');
+	const configFilePath = join(userDataPath, 'appconfig');
 
 	return new Promise(resolve => {
 		const server = createServer();
@@ -133,6 +134,22 @@ export function startServer(config: StartServerConfig) {
 					const saveFilePath = join(savesPath, id);
 					try {
 						await unlink(saveFilePath)
+					} catch (e) {
+						console.error(e);
+					}
+				} else if (type === 'SAVE_CONFIG') {
+					const filehandle = await open(configFilePath, 'w');
+					await writeFile(filehandle, JSON.stringify(data.payload));
+					await filehandle.close();
+				} else if (type === 'LOAD_CONFIG') {
+					try {
+						readFile
+						const contents = await readFile(configFilePath);
+						const config = JSON.parse(contents.toString());
+						client.send({
+							type: 'LOAD_SAVE_RESULT',
+							payload: config
+						});
 					} catch(e) {
 						console.error(e);
 					}

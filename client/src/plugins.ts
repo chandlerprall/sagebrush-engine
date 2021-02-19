@@ -63,12 +63,34 @@ export function collectPluginSaveData() {
 	}
 	return data;
 }
-
 export function setPluginSaveData(data: { [key: string]: SaveableData }) {
 	const pluginsArray = plugins.entries();
 	for (const [name, plugin] of pluginsArray) {
 		if (plugin.fromSaveData && data.hasOwnProperty(name)) {
 			plugin.fromSaveData(data[name]);
+		}
+	}
+}
+
+export function collectPluginConfigData() {
+	const data: { [key: string]: SaveableData } = {};
+	log.debug('collecting plugin config data');
+	const pluginsArray = plugins.entries();
+	for (const [name, plugin] of pluginsArray) {
+		log.debug(`getting config data from ${name}`);
+		const pluginData = plugin.getConfigData?.();
+		if (pluginData) {
+			log.debug(pluginData);
+			data[name] = pluginData;
+		}
+	}
+	return data;
+}
+export function setPluginConfigData(data: { [key: string]: SaveableData }) {
+	const pluginsArray = plugins.entries();
+	for (const [name, plugin] of pluginsArray) {
+		if (plugin.fromConfigData && data.hasOwnProperty(name)) {
+			plugin.fromConfigData(data[name]);
 		}
 	}
 }

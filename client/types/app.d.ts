@@ -96,6 +96,8 @@ declare module "Plugin" {
         setResource: typeof setResource;
         onGetSaveData: (fn: () => SaveableData) => void;
         onFromSaveData: (fn: (data: SaveableData) => void) => void;
+        onGetConfigData: (fn: () => SaveableData) => void;
+        onFromConfigData: (fn: (data: SaveableData) => void) => void;
         log: Log;
     }
     export default class Plugin {
@@ -105,6 +107,8 @@ declare module "Plugin" {
         entry: string;
         getSaveData: (() => SaveableData) | undefined;
         fromSaveData: ((data: SaveableData) => void) | undefined;
+        getConfigData: (() => SaveableData) | undefined;
+        fromConfigData: ((data: SaveableData) => void) | undefined;
         private log;
         private eventSubscriptions;
         initializer?: (args: PluginFunctions) => void | (() => void);
@@ -118,6 +122,8 @@ declare module "Plugin" {
         constructor(definition: App.PluginDefinition);
         private setOnGetSaveData;
         private setOnFromSaveData;
+        private setOnGetConfigData;
+        private setOnFromConfigData;
         load(): Promise<undefined | Event | string>;
         initialize(): Promise<any>;
         deinitialize(): void;
@@ -144,6 +150,8 @@ declare module "socket" {
                     DELETE_SAVE: {
                         id: string;
                     };
+                    SAVE_CONFIG: SaveableData;
+                    LOAD_CONFIG: null;
                 }
                 interface FromServer {
                     DISCOVER_PLUGINS_RESULT: {
@@ -162,6 +170,7 @@ declare module "socket" {
                             [key: string]: SaveableData;
                         };
                     };
+                    LOAD_CONFIG_RESULT: SaveableData;
                 }
             }
         }
@@ -211,6 +220,12 @@ declare module "plugins" {
     export function setPluginSaveData(data: {
         [key: string]: SaveableData;
     }): void;
+    export function collectPluginConfigData(): {
+        [key: string]: SaveableData;
+    };
+    export function setPluginConfigData(data: {
+        [key: string]: SaveableData;
+    }): void;
 }
 declare module "events" {
     import { SaveableData } from "Plugin";
@@ -229,6 +244,8 @@ declare module "events" {
                 'APP.DELETE_SAVE': {
                     id: string;
                 };
+                'APP.SAVE_CONFIG': null;
+                'APP.LOAD_CONFIG': null;
             }
         }
     }

@@ -22,7 +22,7 @@ to {
 `;
 
 function Game({ dispatchEvent, setResource, useResource, state }: PluginFunctions) {
-	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(state.data);
+	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(state.data.game);
 
 	useEffect(() => {
 		if (secondsRemaining === 0 && gametype === 'timed') {

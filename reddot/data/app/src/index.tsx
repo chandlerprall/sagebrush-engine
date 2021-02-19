@@ -10,11 +10,17 @@ declare global {
 		}
 
 		interface Data {
-			gametype: 'classic' | 'timed';
-			dot: { top: number, left: number };
-			score: number;
-			secondsRemaining: number;
-			isGameOver: boolean;
+			game: {
+				gametype: 'classic' | 'timed';
+				dot: { top: number, left: number };
+				score: number;
+				secondsRemaining: number;
+				isGameOver: boolean;
+			};
+
+			config?: {
+				highscore: number;
+			}
 		}
 
 		interface Events {
@@ -29,7 +35,9 @@ declare global {
 }
 
 window.registerPlugin('app', function initPlugin(options) {
-	const { log, onGetSaveData, onFromSaveData, state, getResource, setResource, onEvent, dispatchEvent } = options;
+	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, state, getResource, setResource, onEvent, dispatchEvent } = options;
+
+	const defaultConfig: App.Data['config'] = { highscore: 0 };
 
 	log.enabled = true;
 	log.level = 'debug';
@@ -37,13 +45,17 @@ window.registerPlugin('app', function initPlugin(options) {
 	// interval to track the game counter
 	let intervalId: NodeJS.Timeout;
 
-	// save/restore whatever is in state.data
-	onGetSaveData(() => getResource(state.data));
-	onFromSaveData((data) => setResource(state.data, data));
+	// save/restore whatever is in state.data.game
+	onGetSaveData(() => getResource(state.data.game));
+	onFromSaveData((data) => setResource(state.data.game, data));
+
+	// config comes from state.data.config
+	onGetConfigData(() => getResource(state.data.config) || defaultConfig);
+	onFromConfigData((data) => setResource(state.data.config, data));
 
 	function triggerSave() {
 		const timestamp = Date.now();
-		const { gametype, score, secondsRemaining } = getResource(state.data);
+		const { gametype, score, secondsRemaining } = getResource(state.data.game);
 		dispatchEvent('APP.SAVE', { id: 'latest', meta: { timestamp, score, gametype, secondsRemaining } });
 	}
 
@@ -52,7 +64,7 @@ window.registerPlugin('app', function initPlugin(options) {
 		if (config) {
 			// initialize game data
 			const { type } = config;
-			setResource(state.data, {
+			setResource(state.data.game, {
 				isGameOver: false,
 				gametype: type,
 				dot: createPosition(),
@@ -76,20 +88,27 @@ window.registerPlugin('app', function initPlugin(options) {
 	onEvent('GAME_OVER', () => {
 		dispatchEvent('APP.DELETE_SAVE', { id: 'latest' })
 		clearInterval(intervalId);
-		setResource(state.data.isGameOver, true);
+		setResource(state.data.game.isGameOver, true);
 	});
 
 	onEvent('ADVANCE_TIME', () => {
-		const secondsRemaining = getResource(state.data.secondsRemaining);
-		setResource(state.data.secondsRemaining, secondsRemaining - 1);
+		const secondsRemaining = getResource(state.data.game.secondsRemaining);
+		setResource(state.data.game.secondsRemaining, secondsRemaining - 1);
 		triggerSave();
 	});
 
 	onEvent('DOT_CLICKED', () => {
-		const score = getResource(state.data.score);
-		setResource(state.data.score, score + 1);
-		setResource(state.data.dot, createPosition());
+		const score = getResource(state.data.game.score);
+		const newScore = score + 1;
+		setResource(state.data.game.score, newScore);
+		setResource(state.data.game.dot, createPosition());
 		triggerSave();
+
+		const highscore = getResource(state.data.config.highscore) ?? 0;
+		if (newScore > highscore) {
+			setResource(state.data.config.highscore, newScore);
+			dispatchEvent('APP.SAVE_CONFIG', null);
+		}
 	});
 
 	onEvent('GOTO_MENU', () => {
