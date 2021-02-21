@@ -151,6 +151,7 @@ function makeUnused(value: any) {
 
 export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 	const rawSelector: string[] = (accessor as any).__path;
+	const rawStore: Store<unknown> = (accessor as any).__store;
 	const [resolvedSelector, setResolvedSelector] = useState(() => resolvePossiblePointer(accessor));
 
 	const [value, setValue] = useState(() => resolvedSelector.store.getPartialState(resolvedSelector.selector));
@@ -169,7 +170,7 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 		} else {
 			// watch pointer & the resolved location
 			subscriptions.push(
-				store.subscribeToState([rawSelector], ([accessor]) => {
+				rawStore.subscribeToState([rawSelector], ([accessor]) => {
 					setResolvedSelector({
 						store: (accessor as any).__store,
 						selector: (accessor as any).__path,
