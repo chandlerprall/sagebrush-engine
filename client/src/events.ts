@@ -1,6 +1,6 @@
 import { onEvent, state, getResource, setResource } from './state';
 import { messageServer, onMessage } from './socket';
-import { collectPluginConfigData, collectPluginSaveData, setPluginSaveData } from './plugins';
+import { collectPluginConfigData, collectPluginSaveData, setPluginConfigData, setPluginSaveData } from './plugins';
 import { SaveableData } from './Plugin';
 
 declare global {
@@ -35,7 +35,7 @@ onMessage('GET_SAVES_RESULT', ({ saves }) => {
 
 let lastSaveId: string;
 onEvent('APP.LOAD_SAVE', ({ id }) => {
-	setResource(state.app.isLoadingSave, true);
+	setResource(state.isLoadingSave, true);
 	lastSaveId = id;
 	messageServer('LOAD_SAVE', { id });
 });
@@ -43,7 +43,7 @@ onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
 	console.log('LOAD_SAVE_RESULT', id, data)
 	if (id === lastSaveId) {
 		setPluginSaveData(data);
-		setResource(state.app.isLoadingSave, false);
+		setResource(state.isLoadingSave, false);
 	}
 });
 
@@ -62,10 +62,7 @@ onEvent('APP.SAVE_CONFIG', () => {
 onEvent('APP.LOAD_CONFIG', () => {
 	messageServer('LOAD_CONFIG', null);
 });
-onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
-	console.log('LOAD_SAVE_RESULT', id, data)
-	if (id === lastSaveId) {
-		setPluginSaveData(data);
-		setResource(state.app.isLoadingSave, false);
-	}
+onMessage('LOAD_CONFIG_RESULT', (data) => {
+	console.log('LOAD_CONFIG_RESULT', data)
+	setPluginConfigData(data);
 });

@@ -147,7 +147,7 @@ export function startServer(config: StartServerConfig) {
 						const contents = await readFile(configFilePath);
 						const config = JSON.parse(contents.toString());
 						client.send({
-							type: 'LOAD_SAVE_RESULT',
+							type: 'LOAD_CONFIG_RESULT',
 							payload: config
 						});
 					} catch(e) {

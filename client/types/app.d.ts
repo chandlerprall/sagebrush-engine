@@ -29,37 +29,46 @@ declare module "MainScreen" {
 declare module "state" {
     import Store from 'insula';
     import { ComponentType } from 'react';
+    import Plugin from "Plugin";
+    type Saves = Array<{
+        id: string;
+        meta: any;
+    }>;
     global {
         namespace App {
-            interface App {
-                isLoadingSave: boolean;
-                currentScreen: Accessor<ComponentType>;
-            }
-            interface UiScreens {
-                loading: ComponentType;
-                main: ComponentType;
-            }
-            interface Ui {
-                screens: UiScreens;
-            }
-            interface Data {
-            }
-            type Saves = Array<{
-                id: string;
-                meta: any;
-            }>;
-            interface State {
-                app: App;
-                ui: Ui;
-                data: Data;
-                saves: Saves;
+            interface Plugins {
+                app: {
+                    isLoadingSave: boolean;
+                    currentScreen: Accessor<ComponentType>;
+                    screens: {
+                        loading: ComponentType;
+                        main: ComponentType;
+                    };
+                    plugins: {
+                        discovered: App.PluginDefinition[];
+                        loaded: Plugin<string>[];
+                    };
+                    saves: Saves;
+                };
             }
             interface Events {
                 FINISHED_LOADING_PLUGINS: null;
             }
         }
     }
-    export const store: Store<App.State>;
+    export const store: Store<{
+        isLoadingSave: boolean;
+        currentScreen: Accessor<ComponentType>;
+        screens: {
+            loading: ComponentType;
+            main: ComponentType;
+        };
+        plugins: {
+            discovered: App.PluginDefinition[];
+            loaded: Plugin<string>[];
+        };
+        saves: Saves;
+    }>;
     type primitive = string | number | boolean | undefined | null;
     class Undefined<T> {
         private t;
@@ -73,6 +82,7 @@ declare module "state" {
     };
     type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? ForceOptional extends true ? SubShape | undefined : SubShape : ForceOptional extends true ? Shape | undefined : Shape : never;
     type SetTypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
+    export function makeAccessor<Shape extends object>(store: Store<Shape>, path?: string[]): Accessor<Shape>;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
     export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>): void;
@@ -80,54 +90,19 @@ declare module "state" {
     export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void): void;
     export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
     export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-    export const state: Accessor<App.State, false>;
-}
-declare module "Plugin" {
-    import { getResource, useResource, setResource, state } from "state";
-    import Log from "Log";
-    export type SaveableData = Object | Array<any>;
-    export interface PluginFunctions {
-        state: typeof state;
-        dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-        onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
-        offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
-        useResource: typeof useResource;
-        getResource: typeof getResource;
-        setResource: typeof setResource;
-        onGetSaveData: (fn: () => SaveableData) => void;
-        onFromSaveData: (fn: (data: SaveableData) => void) => void;
-        onGetConfigData: (fn: () => SaveableData) => void;
-        onFromConfigData: (fn: (data: SaveableData) => void) => void;
-        log: Log;
-    }
-    export default class Plugin {
-        name: string;
-        description: string;
-        version: string;
-        entry: string;
-        getSaveData: (() => SaveableData) | undefined;
-        fromSaveData: ((data: SaveableData) => void) | undefined;
-        getConfigData: (() => SaveableData) | undefined;
-        fromConfigData: ((data: SaveableData) => void) | undefined;
-        private log;
-        private eventSubscriptions;
-        initializer?: (args: PluginFunctions) => void | (() => void);
-        private uninitializer?;
-        private dispatchEvent;
-        private onEvent;
-        private offEvent;
-        private pluginFunctions;
-        isLoaded: boolean;
-        loadingPromise: Promise<undefined | Event | string>;
-        constructor(definition: App.PluginDefinition);
-        private setOnGetSaveData;
-        private setOnFromSaveData;
-        private setOnGetConfigData;
-        private setOnFromConfigData;
-        load(): Promise<undefined | Event | string>;
-        initialize(): Promise<any>;
-        deinitialize(): void;
-    }
+    export const state: Accessor<{
+        isLoadingSave: boolean;
+        currentScreen: Accessor<ComponentType>;
+        screens: {
+            loading: ComponentType;
+            main: ComponentType;
+        };
+        plugins: {
+            discovered: App.PluginDefinition[];
+            loaded: Plugin<string>[];
+        };
+        saves: Saves;
+    }, false>;
 }
 declare module "socket" {
     import { ReactNode, ReactElement } from 'react';
@@ -170,7 +145,11 @@ declare module "socket" {
                             [key: string]: SaveableData;
                         };
                     };
-                    LOAD_CONFIG_RESULT: SaveableData;
+                    LOAD_CONFIG_RESULT: {
+                        data: {
+                            [key: string]: SaveableData;
+                        };
+                    };
                 }
             }
         }
@@ -183,6 +162,7 @@ declare module "socket" {
     }): ReactElement;
 }
 declare module "plugins" {
+    import { Accessor } from "state";
     import Plugin, { PluginFunctions, SaveableData } from "Plugin";
     global {
         namespace App {
@@ -193,27 +173,22 @@ declare module "plugins" {
                 entry: string;
             }
             interface PluginOrchestration {
-                initialize(fns: PluginFunctions): void | Promise<void>;
-                deinitialize(fns: PluginFunctions): void;
-            }
-            interface State {
-                plugins: {
-                    discovered: PluginDefinition[];
-                    loaded: Plugin[];
-                };
+                initialize(fns: PluginFunctions<string>): void | Promise<void>;
+                deinitialize(fns: PluginFunctions<string>): void;
             }
             interface Events {
                 LOAD_PLUGINS: null;
-                PLUGIN_LOADED: Plugin;
+                PLUGIN_LOADED: Plugin<string>;
                 INITIALIZE_PLUGINS: null;
             }
         }
     }
     global {
         interface Window {
-            registerPlugin(name: string, initializer: (arg: PluginFunctions) => void | (() => void)): void;
+            registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void)): void;
         }
     }
+    export function getPlugin<PluginName extends string>(pluginName: PluginName): Accessor<App.Plugins[PluginName]>;
     export function collectPluginSaveData(): {
         [key: string]: SaveableData;
     };
@@ -226,6 +201,64 @@ declare module "plugins" {
     export function setPluginConfigData(data: {
         [key: string]: SaveableData;
     }): void;
+}
+declare module "Plugin" {
+    import { getResource, useResource, setResource, state, Accessor } from "state";
+    import Log from "Log";
+    export type SaveableData = Object | Array<any>;
+    global {
+        namespace App {
+            interface Plugins {
+                [key: string]: Object;
+            }
+        }
+    }
+    export interface PluginFunctions<PluginName extends string> {
+        getPlugin: <PluginName extends string>(pluginName: PluginName) => Accessor<App.Plugins[PluginName]>;
+        app: typeof state;
+        store: Accessor<App.Plugins[PluginName]>;
+        dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
+        onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        useResource: typeof useResource;
+        getResource: typeof getResource;
+        setResource: typeof setResource;
+        onGetSaveData: (fn: () => SaveableData) => void;
+        onFromSaveData: (fn: (data: SaveableData) => void) => void;
+        onGetConfigData: (fn: () => SaveableData) => void;
+        onFromConfigData: (fn: (data: SaveableData) => void) => void;
+        log: Log;
+    }
+    export default class Plugin<PluginName extends string> {
+        name: PluginName;
+        description: string;
+        version: string;
+        entry: string;
+        getSaveData: (() => SaveableData) | undefined;
+        fromSaveData: ((data: SaveableData) => void) | undefined;
+        getConfigData: (() => SaveableData) | undefined;
+        fromConfigData: ((data: SaveableData) => void) | undefined;
+        private log;
+        private eventSubscriptions;
+        private store;
+        accessor: Accessor<App.Plugins[PluginName]>;
+        initializer?: (args: PluginFunctions<PluginName>) => void | (() => void);
+        private uninitializer?;
+        private dispatchEvent;
+        private onEvent;
+        private offEvent;
+        private pluginFunctions;
+        isLoaded: boolean;
+        loadingPromise: Promise<undefined | Event | string>;
+        constructor(definition: App.PluginDefinition);
+        private setOnGetSaveData;
+        private setOnFromSaveData;
+        private setOnGetConfigData;
+        private setOnFromConfigData;
+        load(): Promise<undefined | Event | string>;
+        initialize(): Promise<any>;
+        deinitialize(): void;
+    }
 }
 declare module "events" {
     import { SaveableData } from "Plugin";

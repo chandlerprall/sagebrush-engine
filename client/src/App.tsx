@@ -8,7 +8,7 @@ export default function App() {
 		dispatchEvent('LOAD_PLUGINS', null);
 	}, []);
 
-	const Screen = useResource(state.app.currentScreen);
+	const Screen = useResource(state.currentScreen);
 	return (
 		<Socket>
 			<Screen />

@@ -21,8 +21,8 @@ to {
 }
 `;
 
-function Game({ dispatchEvent, setResource, useResource, state }: PluginFunctions) {
-	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(state.data.game);
+function Game({ dispatchEvent, setResource, useResource, app, store }: PluginFunctions<'reddot'>) {
+	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(store.game);
 
 	useEffect(() => {
 		if (secondsRemaining === 0 && gametype === 'timed') {
@@ -106,10 +106,10 @@ function Game({ dispatchEvent, setResource, useResource, state }: PluginFunction
 				outline-width: 0;
 				transform: translate(-50%, -50%);
 			`}
-							onClick={(e) => {
-								e.stopPropagation();
-								dispatchEvent('DOT_CLICKED', null)
-							}}
+			onClick={(e) => {
+				e.stopPropagation();
+				dispatchEvent('DOT_CLICKED', null)
+			}}
 			/>
 
 			{
@@ -134,16 +134,18 @@ function Game({ dispatchEvent, setResource, useResource, state }: PluginFunction
 							`}>Game Over</span>
 						</div>
 						<Button css={css`
-							position: absolute;
-							top: calc(50% + 50px);
-							left: 50%;
-							transform: translate(-50%, -50%);
-						`}
-										onClick={(e) => {
-											e.stopPropagation();
-											setResource(state.app.currentScreen, state.ui.screens.main)
-										}}
-						>return to menu</Button>
+								position: absolute;
+								top: calc(50% + 50px);
+								left: 50%;
+								transform: translate(-50%, -50%);
+							`}
+							onClick={(e) => {
+								e.stopPropagation();
+								setResource(app.currentScreen, app.screens.main)
+							}}
+						>
+							return to menu
+						</Button>
 					</>
 				)
 			}
@@ -151,9 +153,9 @@ function Game({ dispatchEvent, setResource, useResource, state }: PluginFunction
 	);
 }
 
-export default (fns: PluginFunctions) => function GameScreen() {
-	const { useResource, state } = fns;
-	const isLoadingSave = useResource(state.app.isLoadingSave);
+export default (fns: PluginFunctions<'reddot'>) => function GameScreen() {
+	const { useResource, app } = fns;
+	const isLoadingSave = useResource(app.isLoadingSave);
 
 	return isLoadingSave
 		? <></>

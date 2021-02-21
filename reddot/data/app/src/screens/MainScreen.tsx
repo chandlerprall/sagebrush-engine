@@ -4,16 +4,16 @@ import { Button } from '../Button';
 import { PluginFunctions } from 'Plugin';
 import { formatSeconds } from './GameScreen';
 
-export default ({ dispatchEvent, useResource, state }: PluginFunctions) => function MainScreen() {
+export default ({ dispatchEvent, useResource, app, store }: PluginFunctions<'reddot'>) => function MainScreen() {
 	useEffect(() => {
 		dispatchEvent('APP.GET_SAVES', null);
 		dispatchEvent('APP.LOAD_CONFIG', null);
 	}, []);
 
-	const saves = useResource(state.saves);
-	const save: undefined | { id: string, meta: App.Data['game'] } = saves[0];
+	const saves = useResource(app.saves);
+	const save: undefined | { id: string, meta: App.Plugins['reddot']['game'] } = saves[0];
 
-	const highscore = useResource(state.data.config.highscore);
+	const highscore = useResource(store.config.highscore);
 
 	return (
 		<>

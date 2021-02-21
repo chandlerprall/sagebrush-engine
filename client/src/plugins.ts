@@ -1,4 +1,4 @@
-import { state, onEvent, dispatchEvent, setResource, getResource } from './state';
+import { state, onEvent, dispatchEvent, setResource, getResource, Accessor } from './state';
 import { messageServer, onMessage, offMessage } from './socket';
 import Plugin, { PluginFunctions, SaveableData } from './Plugin';
 import Log from './Log';
@@ -15,20 +15,13 @@ declare global {
 		}
 
 		interface PluginOrchestration {
-			initialize(fns: PluginFunctions): void | Promise<void>;
-			deinitialize(fns: PluginFunctions): void;
-		}
-
-		interface State {
-			plugins: {
-				discovered: PluginDefinition[];
-				loaded: Plugin[];
-			};
+			initialize(fns: PluginFunctions<string>): void | Promise<void>;
+			deinitialize(fns: PluginFunctions<string>): void;
 		}
 
 		interface Events {
 			LOAD_PLUGINS: null;
-			PLUGIN_LOADED: Plugin;
+			PLUGIN_LOADED: Plugin<string>;
 			INITIALIZE_PLUGINS: null;
 		}
 	}
@@ -36,18 +29,31 @@ declare global {
 
 declare global {
 	interface Window {
-		registerPlugin(name: string, initializer: (arg: PluginFunctions) => void | (() => void)): void;
+		registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void)): void;
 	}
 }
-const plugins = new Map<string, Plugin>();
+const plugins = new Map<string, Plugin<string>>();
 window.registerPlugin = (name, initializer) => {
 	const plugin = plugins.get(name);
 	if (plugin == null) {
 		log.error(`No matching plugin for "${name}" orchestration`);
 	} else {
-		plugin.initializer = initializer;
+		plugin.initializer = initializer as any;
 	}
 };
+
+export function getPlugin<PluginName extends string>(pluginName: PluginName): Accessor<App.Plugins[PluginName]> {
+	if (pluginName === 'app') return state as any;
+
+	const pluginsArray = plugins.entries();
+	for (const [name, plugin] of pluginsArray) {
+		if (name === pluginName) {
+			return plugin.accessor as any;
+		}
+	}
+	log.error(`getPlugin requested "${pluginName}" but that plugin does not exist`);
+	return undefined as unknown as Accessor<App.Plugins[PluginName]>;
+}
 
 export function collectPluginSaveData() {
 	const data: { [key: string]: SaveableData } = {};
@@ -141,7 +147,7 @@ onEvent('INITIALIZE_PLUGINS', () => {
 });
 
 onEvent('FINISHED_LOADING_PLUGINS', () => {
-	setResource(state.app.currentScreen, state.ui.screens.main);
+	setResource(state.currentScreen, state.screens.main);
 });
 
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {

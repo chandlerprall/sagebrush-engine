@@ -1,38 +1,30 @@
-import Store  from 'insula';
+import Store from 'insula';
 import { ComponentType, useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import MainScreen from './MainScreen';
+import Plugin from './Plugin';
+
+type Saves = Array<{ id: string, meta: any }>
 
 declare global {
 	namespace App {
-		// general application state
-		interface App {
-			isLoadingSave: boolean;
-			currentScreen: Accessor<ComponentType>;
-		}
+		interface Plugins {
+			app: {
+				isLoadingSave: boolean;
+				currentScreen: Accessor<ComponentType>;
 
-		// screens available
-		interface UiScreens {
-			loading: ComponentType;
-			main: ComponentType;
-		}
+				screens: {
+					loading: ComponentType;
+					main: ComponentType;
+				};
 
-		// ui interfaces
-		interface Ui {
-			screens: UiScreens;
-		}
+				plugins: {
+					discovered: App.PluginDefinition[];
+					loaded: Plugin<string>[];
+				};
 
-		// customizable application state
-		interface Data {}
-
-		// array of save id & metadata
-		type Saves = Array<{ id: string, meta: any }>
-
-		interface State {
-			app: App;
-			ui: Ui;
-			data: Data;
-			saves: Saves;
+				saves: Saves;
+			}
 		}
 
 		interface Events {
@@ -41,22 +33,20 @@ declare global {
 	}
 }
 
-export const store = new Store<App.State>({
-	app: {
-		isLoadingSave: false,
-		currentScreen: undefined as any, // fulfilled after `state` accessor is created below
+export const store = new Store<App.Plugins['app']>({
+	isLoadingSave: false,
+	currentScreen: undefined as any, // fulfilled after `state` accessor is created below
+
+	screens: {
+		loading: LoadingScreen,
+		main: MainScreen,
 	},
-	ui: {
-		screens: {
-			loading: LoadingScreen,
-			main: MainScreen,
-		},
-	},
-	data: {},
+
 	plugins: {
 		discovered: [],
 		loaded: [],
 	},
+
 	saves: [],
 });
 
@@ -122,7 +112,7 @@ type SetTypeFromAccessor<T> = T extends primitive
 				: never
 ;
 
-function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] = []): Accessor<Shape> {
+export function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] = []): Accessor<Shape> {
 	return new Proxy(
 		{},
 		{
@@ -135,19 +125,20 @@ function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] 
 	) as any;
 }
 
-function resolvePossiblePointer<T>(accessor: T): string[] {
-	const store: Store<App.State> = (accessor as any).__store;
+function resolvePossiblePointer<T>(accessor: T): { store: Store<unknown>, selector: string[] } {
+	let store: Store<unknown> = (accessor as any).__store;
 	let selector: string[] = (accessor as any).__path;
 
 	const _value = store.getPartialState(selector);
 	if (_value != null && typeof _value === 'object') {
 		if (_value.__store && _value.__path) {
 			accessor = _value;
+			store = (accessor as any).__store;
 			selector = (accessor as any).__path;
 		}
 	}
 
-	return selector;
+	return { store, selector };
 }
 
 // React will throw away a setState operation if the same object/array is passed
@@ -159,30 +150,32 @@ function makeUnused(value: any) {
 }
 
 export function useResource<T>(accessor: T): TypeFromAccessor<T> {
-	const store: Store<App.State> = (accessor as any).__store;
 	const rawSelector: string[] = (accessor as any).__path;
 	const [resolvedSelector, setResolvedSelector] = useState(() => resolvePossiblePointer(accessor));
 
-	const [value, setValue] = useState(() => store.getPartialState(resolvedSelector));
+	const [value, setValue] = useState(() => resolvedSelector.store.getPartialState(resolvedSelector.selector));
 
 	useEffect(() => {
 		// it's possible for a value to have changed between the initial render and this useEffect firing
-		const currentValue = store.getPartialState(resolvedSelector);
+		const currentValue = resolvedSelector.store.getPartialState(resolvedSelector.selector);
 		setValue(() => makeUnused(currentValue));
 
 		const subscriptions: Function[] = [];
 
-		if (rawSelector.join() === resolvedSelector.join()) {
-			subscriptions.push(store.subscribeToState([rawSelector], ([value]) => {
+		if (rawSelector.join() === resolvedSelector.selector.join()) {
+			subscriptions.push(resolvedSelector.store.subscribeToState([rawSelector], ([value]) => {
 				setValue(() => makeUnused(value));
 			}));
 		} else {
-			// watch pointer
+			// watch pointer & the resolved location
 			subscriptions.push(
 				store.subscribeToState([rawSelector], ([accessor]) => {
-					setResolvedSelector((accessor as any).__path);
+					setResolvedSelector({
+						store: (accessor as any).__store,
+						selector: (accessor as any).__path,
+					});
 				}),
-				store.subscribeToState([resolvedSelector], ([value]) => {
+				resolvedSelector.store.subscribeToState([resolvedSelector.selector], ([value]) => {
 					setValue(() => value);
 				})
 			);
@@ -193,19 +186,19 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 				subscriptions[i]();
 			}
 		}
-	}, [rawSelector.join(), resolvedSelector.join()]);
+	}, [rawSelector.join(), resolvedSelector.selector.join()]);
 
 	return value;
 }
 
 export function getResource<T>(accessor: T): TypeFromAccessor<T> {
-	const store: Store<App.State> = (accessor as any).__store;
-	const selector: string[] = (accessor as any).__path;
+	const resolved = resolvePossiblePointer(accessor);
+	const { store, selector } = resolved;
 	return store.getPartialState(selector);
 }
 
 export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>) {
-	const store: Store<App.State> = (accessor as any).__store;
+	const store: Store<any> = (accessor as any).__store;
 	const selector: string[] = (accessor as any).__path;
 	store.setPartialState(selector, value);
 }
@@ -225,4 +218,4 @@ export function dispatchEvent<Event extends keyof App.Events>(event: Event, payl
 }
 
 export const state = makeAccessor(store);
-setResource(state.app.currentScreen, state.ui.screens.loading);
+setResource(state.currentScreen, state.screens.loading);

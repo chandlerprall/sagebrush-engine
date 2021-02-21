@@ -1,10 +1,32 @@
-import { onEvent, offEvent, dispatchEvent, getResource, useResource, setResource, state } from './state';
+import Store from 'insula';
+import {
+	onEvent,
+	offEvent,
+	dispatchEvent,
+	getResource,
+	useResource,
+	setResource,
+	state,
+	Accessor,
+	makeAccessor,
+} from './state';
 import Log from './Log';
+import { getPlugin } from './plugins';
 
 export type SaveableData = Object | Array<any>;
 
-export interface PluginFunctions {
-	state: typeof state;
+declare global {
+	namespace App {
+		interface Plugins {
+			[key: string]: Object
+		}
+	}
+}
+
+export interface PluginFunctions<PluginName extends string> {
+	getPlugin: <PluginName extends string>(pluginName: PluginName) => Accessor<App.Plugins[PluginName]>;
+	app: typeof state;
+	store: Accessor<App.Plugins[PluginName]>;
 	dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
 	onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
 	offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
@@ -18,8 +40,8 @@ export interface PluginFunctions {
 	log: Log;
 }
 
-export default class Plugin {
-	public name: string;
+export default class Plugin<PluginName extends string> {
+	public name: PluginName;
 	public description: string;
 	public version: string;
 	public entry: string;
@@ -30,8 +52,10 @@ export default class Plugin {
 
 	private log: Log;
 	private eventSubscriptions: Array<[string, Function]> = [];
+	private store: Store<App.Plugins[PluginName]>;
+	public accessor: Accessor<App.Plugins[PluginName]>;
 
-	public initializer?: (args: PluginFunctions) => void | (() => void);
+	public initializer?: (args: PluginFunctions<PluginName>) => void | (() => void);
 	private uninitializer?: void | (() => void);
 
 	private dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
@@ -45,20 +69,25 @@ export default class Plugin {
 		offEvent(event, listener);
 	}
 
-	private pluginFunctions: PluginFunctions;
+	private pluginFunctions: PluginFunctions<PluginName>;
 
 	isLoaded: boolean;
 	loadingPromise: Promise<undefined | Event | string>;
 
 	constructor(definition: App.PluginDefinition) {
-		this.name = definition.name;
+		this.name = definition.name as PluginName;
 		this.description = definition.description;
 		this.version = definition.version;
 		this.entry = definition.entry;
 		this.log = new Log(`Plugin(${this.name})`);
 
+		this.store = new Store<App.Plugins[PluginName]>({});
+		this.accessor = makeAccessor<App.Plugins[PluginName]>(this.store) as any;
+
 		this.pluginFunctions = {
-			state,
+			getPlugin,
+			app: state,
+			store: this.accessor,
 			dispatchEvent: this.dispatchEvent,
 			onEvent: this.onEvent,
 			offEvent: this.offEvent,
