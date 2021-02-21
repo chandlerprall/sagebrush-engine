@@ -14,11 +14,6 @@ declare global {
 			entry: string;
 		}
 
-		interface PluginOrchestration {
-			initialize(fns: PluginFunctions<string>): void | Promise<void>;
-			deinitialize(fns: PluginFunctions<string>): void;
-		}
-
 		interface Events {
 			LOAD_PLUGINS: null;
 			PLUGIN_LOADED: Plugin<string>;
@@ -43,8 +38,6 @@ window.registerPlugin = (name, initializer) => {
 };
 
 export function getPlugin<PluginName extends string>(pluginName: PluginName): Accessor<App.Plugins[PluginName]> {
-	if (pluginName === 'app') return state as any;
-
 	const pluginsArray = plugins.entries();
 	for (const [name, plugin] of pluginsArray) {
 		if (name === pluginName) {

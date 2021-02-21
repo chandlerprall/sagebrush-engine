@@ -34,29 +34,7 @@ declare module "state" {
         id: string;
         meta: any;
     }>;
-    global {
-        namespace App {
-            interface Plugins {
-                app: {
-                    isLoadingSave: boolean;
-                    currentScreen: Accessor<ComponentType>;
-                    screens: {
-                        loading: ComponentType;
-                        main: ComponentType;
-                    };
-                    plugins: {
-                        discovered: App.PluginDefinition[];
-                        loaded: Plugin<string>[];
-                    };
-                    saves: Saves;
-                };
-            }
-            interface Events {
-                FINISHED_LOADING_PLUGINS: null;
-            }
-        }
-    }
-    export const store: Store<{
+    interface AppShape {
         isLoadingSave: boolean;
         currentScreen: Accessor<ComponentType>;
         screens: {
@@ -68,7 +46,17 @@ declare module "state" {
             loaded: Plugin<string>[];
         };
         saves: Saves;
-    }>;
+    }
+    global {
+        namespace App {
+            interface Plugins {
+            }
+            interface Events {
+                FINISHED_LOADING_PLUGINS: null;
+            }
+        }
+    }
+    export const store: Store<AppShape>;
     type primitive = string | number | boolean | undefined | null;
     class Undefined<T> {
         private t;
@@ -90,19 +78,7 @@ declare module "state" {
     export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void): void;
     export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
     export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-    export const state: Accessor<{
-        isLoadingSave: boolean;
-        currentScreen: Accessor<ComponentType>;
-        screens: {
-            loading: ComponentType;
-            main: ComponentType;
-        };
-        plugins: {
-            discovered: App.PluginDefinition[];
-            loaded: Plugin<string>[];
-        };
-        saves: Saves;
-    }, false>;
+    export const state: Accessor<AppShape, false>;
 }
 declare module "socket" {
     import { ReactNode, ReactElement } from 'react';
@@ -171,10 +147,6 @@ declare module "plugins" {
                 version: string;
                 description: string;
                 entry: string;
-            }
-            interface PluginOrchestration {
-                initialize(fns: PluginFunctions<string>): void | Promise<void>;
-                deinitialize(fns: PluginFunctions<string>): void;
             }
             interface Events {
                 LOAD_PLUGINS: null;

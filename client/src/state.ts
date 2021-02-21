@@ -6,26 +6,26 @@ import Plugin from './Plugin';
 
 type Saves = Array<{ id: string, meta: any }>
 
+interface AppShape {
+	isLoadingSave: boolean;
+	currentScreen: Accessor<ComponentType>;
+
+	screens: {
+		loading: ComponentType;
+		main: ComponentType;
+	};
+
+	plugins: {
+		discovered: App.PluginDefinition[];
+		loaded: Plugin<string>[];
+	};
+
+	saves: Saves;
+}
+
 declare global {
 	namespace App {
-		interface Plugins {
-			app: {
-				isLoadingSave: boolean;
-				currentScreen: Accessor<ComponentType>;
-
-				screens: {
-					loading: ComponentType;
-					main: ComponentType;
-				};
-
-				plugins: {
-					discovered: App.PluginDefinition[];
-					loaded: Plugin<string>[];
-				};
-
-				saves: Saves;
-			}
-		}
+		interface Plugins {}
 
 		interface Events {
 			FINISHED_LOADING_PLUGINS: null;
@@ -33,7 +33,7 @@ declare global {
 	}
 }
 
-export const store = new Store<App.Plugins['app']>({
+export const store = new Store<AppShape>({
 	isLoadingSave: false,
 	currentScreen: undefined as any, // fulfilled after `state` accessor is created below
 

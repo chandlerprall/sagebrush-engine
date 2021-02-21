@@ -40,7 +40,6 @@ onEvent('APP.LOAD_SAVE', ({ id }) => {
 	messageServer('LOAD_SAVE', { id });
 });
 onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
-	console.log('LOAD_SAVE_RESULT', id, data)
 	if (id === lastSaveId) {
 		setPluginSaveData(data);
 		setResource(state.isLoadingSave, false);
@@ -63,6 +62,5 @@ onEvent('APP.LOAD_CONFIG', () => {
 	messageServer('LOAD_CONFIG', null);
 });
 onMessage('LOAD_CONFIG_RESULT', (data) => {
-	console.log('LOAD_CONFIG_RESULT', data)
 	setPluginConfigData(data);
 });
