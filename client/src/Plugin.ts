@@ -6,7 +6,7 @@ import {
 	getResource,
 	useResource,
 	setResource,
-	state,
+	app,
 	Accessor,
 	makeAccessor,
 } from './state';
@@ -25,7 +25,7 @@ declare global {
 
 export interface PluginFunctions<PluginName extends string> {
 	getPlugin: <PluginName extends string>(pluginName: PluginName) => Accessor<App.Plugins[PluginName]>;
-	app: typeof state;
+	app: typeof app;
 	store: Accessor<App.Plugins[PluginName]>;
 	dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
 	onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
@@ -86,7 +86,7 @@ export default class Plugin<PluginName extends string> {
 
 		this.pluginFunctions = {
 			getPlugin,
-			app: state,
+			app,
 			store: this.accessor,
 			dispatchEvent: this.dispatchEvent,
 			onEvent: this.onEvent,

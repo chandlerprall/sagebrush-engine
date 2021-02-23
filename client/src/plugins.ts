@@ -1,4 +1,4 @@
-import { state, onEvent, dispatchEvent, setResource, getResource, Accessor } from './state';
+import { app, onEvent, dispatchEvent, setResource, getResource, Accessor } from './state';
 import { messageServer, onMessage, offMessage } from './socket';
 import Plugin, { PluginFunctions, SaveableData } from './Plugin';
 import Log from './Log';
@@ -97,7 +97,7 @@ export function setPluginConfigData(data: { [key: string]: SaveableData }) {
 onEvent('LOAD_PLUGINS', () => {
 	const onDiscoverPluginsResult: (payload: App.Messages.FromServer['DISCOVER_PLUGINS_RESULT']) => void = ({ plugins: discoveredPlugins }) => {
 		offMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
-		setResource(state.plugins.discovered, discoveredPlugins);
+		setResource(app.plugins.discovered, discoveredPlugins);
 
 		for (let i = 0; i < discoveredPlugins.length; i++) {
 			const pluginDef = discoveredPlugins[i];
@@ -114,17 +114,17 @@ onEvent('LOAD_PLUGINS', () => {
 });
 
 onEvent('PLUGIN_LOADED', plugin => {
-	const loadedPlugins = [...getResource(state.plugins.loaded), plugin];
-	setResource(state.plugins.loaded, loadedPlugins);
+	const loadedPlugins = [...getResource(app.plugins.loaded), plugin];
+	setResource(app.plugins.loaded, loadedPlugins);
 
-	const discoveredPluginsCount = getResource((state.plugins.loaded.length));
+	const discoveredPluginsCount = getResource((app.plugins.loaded.length));
 	if (discoveredPluginsCount === loadedPlugins.length) {
 		dispatchEvent('INITIALIZE_PLUGINS', null);
 	}
 });
 
 onEvent('INITIALIZE_PLUGINS', () => {
-	const loadedPlugins = getResource(state.plugins.loaded);
+	const loadedPlugins = getResource(app.plugins.loaded);
 	const initPromises: Array<Promise<void>> = [];
 	for (let i = 0; i < loadedPlugins.length; i++) {
 		const plugin = loadedPlugins[i];
@@ -140,7 +140,7 @@ onEvent('INITIALIZE_PLUGINS', () => {
 });
 
 onEvent('FINISHED_LOADING_PLUGINS', () => {
-	setResource(state.currentScreen, state.screens.main);
+	setResource(app.currentScreen, app.screens.main);
 });
 
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {

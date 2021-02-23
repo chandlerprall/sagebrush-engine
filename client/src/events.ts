@@ -1,4 +1,4 @@
-import { onEvent, state, getResource, setResource } from './state';
+import { onEvent, app, getResource, setResource } from './state';
 import { messageServer, onMessage } from './socket';
 import { collectPluginConfigData, collectPluginSaveData, setPluginConfigData, setPluginSaveData } from './plugins';
 import { SaveableData } from './Plugin';
@@ -30,28 +30,28 @@ onEvent('APP.GET_SAVES', () => {
 	messageServer('GET_SAVES', null);
 });
 onMessage('GET_SAVES_RESULT', ({ saves }) => {
-	setResource(state.saves, saves);
+	setResource(app.saves, saves);
 });
 
 let lastSaveId: string;
 onEvent('APP.LOAD_SAVE', ({ id }) => {
-	setResource(state.isLoadingSave, true);
+	setResource(app.isLoadingSave, true);
 	lastSaveId = id;
 	messageServer('LOAD_SAVE', { id });
 });
 onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
 	if (id === lastSaveId) {
 		setPluginSaveData(data);
-		setResource(state.isLoadingSave, false);
+		setResource(app.isLoadingSave, false);
 	}
 });
 
 onEvent('APP.DELETE_SAVE', ({ id }) => {
 	messageServer('DELETE_SAVE', { id });
 
-	const saves = getResource(state.saves);
+	const saves = getResource(app.saves);
 	const newSaves = saves.filter(({ id: saveId }) => saveId !== id);
-	setResource(state.saves, newSaves);
+	setResource(app.saves, newSaves);
 });
 
 onEvent('APP.SAVE_CONFIG', () => {

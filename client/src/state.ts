@@ -33,7 +33,7 @@ declare global {
 	}
 }
 
-export const store = new Store<AppShape>({
+export const appStore = new Store<AppShape>({
 	isLoadingSave: false,
 	currentScreen: undefined as any, // fulfilled after `state` accessor is created below
 
@@ -204,19 +204,19 @@ export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>) {
 	store.setPartialState(selector, value);
 }
 
-type EventFunctions = Parameters<Parameters<typeof store['on']>[1]>[1];
+type EventFunctions = Parameters<Parameters<typeof appStore['on']>[1]>[1];
 
 export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void) {
-	store.on(event, listener);
+	appStore.on(event, listener);
 }
 
 export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
-	store.off(event, listener);
+	appStore.off(event, listener);
 }
 
 export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
-	store.dispatch(event, payload);
+	appStore.dispatch(event, payload);
 }
 
-export const state = makeAccessor(store);
-setResource(state.currentScreen, state.screens.loading);
+export const app = makeAccessor(appStore);
+setResource(app.currentScreen, app.screens.loading);

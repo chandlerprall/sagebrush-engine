@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { state, useResource, dispatchEvent } from './state';
+import { app, useResource, dispatchEvent } from './state';
 
 export default function LoadingScreen() {
-	const discoveredPlugins = useResource(state.plugins.discovered);
-	const loadedPlugins = useResource(state.plugins.loaded);
+	const discoveredPlugins = useResource(app.plugins.discovered);
+	const loadedPlugins = useResource(app.plugins.loaded);
 
 	const discoveredPluginsCount = discoveredPlugins.length;
 	const loadedPluginsCount = loadedPlugins.length;
