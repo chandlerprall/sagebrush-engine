@@ -1,14 +1,11 @@
 import Store from 'insula';
 import {
-	onEvent,
-	offEvent,
-	dispatchEvent,
 	getResource,
 	useResource,
 	setResource,
 	app,
 	Accessor,
-	makeAccessor,
+	makeAccessor, Eventable,
 } from './state';
 import Log from './Log';
 import { getPlugin } from './plugins';
@@ -18,18 +15,19 @@ export type SaveableData = Object | Array<any>;
 declare global {
 	namespace App {
 		interface Plugins {
-			[key: string]: Object
+			[key: string]: Object;
+		}
+
+		interface Events {
+			[key: string]: Object;
 		}
 	}
 }
 
 export interface PluginFunctions<PluginName extends string> {
-	getPlugin: <PluginName extends string>(pluginName: PluginName) => Accessor<App.Plugins[PluginName]>;
+	getPlugin: <GottenPlugin extends string>(pluginName: GottenPlugin) => Accessor<App.Plugins[GottenPlugin]> & Eventable<App.Events[GottenPlugin]>;
 	app: typeof app;
-	store: Accessor<App.Plugins[PluginName]>;
-	dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-	onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
-	offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+	plugin: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
 	useResource: typeof useResource,
 	getResource: typeof getResource,
 	setResource: typeof setResource,
@@ -51,25 +49,12 @@ export default class Plugin<PluginName extends string> {
 	public fromConfigData: ((data: SaveableData) => void) | undefined;
 
 	private log: Log;
-	private eventSubscriptions: Array<[string, Function]> = [];
+	private eventSubscriptions: Array<[store: Store<any>, event: string, listener: Function]> = [];
 	private store: Store<App.Plugins[PluginName]>;
-	public accessor: Accessor<App.Plugins[PluginName]>;
+	public accessor: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
 
 	public initializer?: (args: PluginFunctions<PluginName>) => void | (() => void);
 	private uninitializer?: void | (() => void);
-
-	private dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
-		dispatchEvent(event, payload);
-	}
-	private onEvent = <Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) => {
-		this.eventSubscriptions.push([event, listener]);
-		onEvent(event, listener);
-	}
-	private offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
-		offEvent(event, listener);
-	}
-
-	private pluginFunctions: PluginFunctions<PluginName>;
 
 	isLoaded: boolean;
 	loadingPromise: Promise<undefined | Event | string>;
@@ -82,28 +67,32 @@ export default class Plugin<PluginName extends string> {
 		this.log = new Log(`Plugin(${this.name})`);
 
 		this.store = new Store<App.Plugins[PluginName]>({});
-		this.accessor = makeAccessor<App.Plugins[PluginName]>(this.store) as any;
-
-		this.pluginFunctions = {
-			getPlugin,
-			app,
-			store: this.accessor,
-			dispatchEvent: this.dispatchEvent,
-			onEvent: this.onEvent,
-			offEvent: this.offEvent,
-			onGetSaveData: this.setOnGetSaveData,
-			onFromSaveData: this.setOnFromSaveData,
-			onGetConfigData: this.setOnGetConfigData,
-			onFromConfigData: this.setOnFromConfigData,
-			log: this.log,
-			getResource,
-			setResource,
-			useResource,
-		};
+		this.accessor = makeAccessor<App.Plugins[PluginName], App.Events[PluginName]>(this.store) as any;
 
 		this.isLoaded = false;
 		this.loadingPromise = this.load();
 		this.loadingPromise.then(() => this.isLoaded = true);
+	}
+
+	private getPlugin = <GottenPlugin extends string>(pluginName: GottenPlugin): Accessor<App.Plugins[GottenPlugin]> & Eventable<App.Events[GottenPlugin]> => {
+		const pluginAccessor = getPlugin(pluginName);
+		const store = (pluginAccessor as any).__store;
+
+		// intercept onEvent so they can be managed when the calling plugin is unloads
+		const onEvent = (event: string, listener: Function) => {
+			this.eventSubscriptions.push([store, event, listener]);
+			store.on(event, listener);
+		}
+		const proxy = new Proxy(
+			pluginAccessor,{
+				get(target, prop: string, reciever) {
+					if (prop === 'onEvent') return onEvent;
+					return Reflect.get(target, prop, reciever);
+				}
+			}
+		);
+
+		return proxy;
 	}
 
 	private setOnGetSaveData = (onGetSaveData: () => SaveableData) => {
@@ -143,7 +132,19 @@ export default class Plugin<PluginName extends string> {
 		if (this.initializer === undefined) {
 			this.log.error('initialize called without an initializer');
 		} else {
-			this.uninitializer = this.initializer(this.pluginFunctions);
+			this.uninitializer = this.initializer({
+				app: this.getPlugin('app') as any,
+				plugin: this.getPlugin(this.name),
+				getPlugin: this.getPlugin,
+				onGetSaveData: this.setOnGetSaveData,
+				onFromSaveData: this.setOnFromSaveData,
+				onGetConfigData: this.setOnGetConfigData,
+				onFromConfigData: this.setOnFromConfigData,
+				log: this.log,
+				getResource,
+				setResource,
+				useResource,
+			});
 		}
 	}
 
@@ -151,9 +152,9 @@ export default class Plugin<PluginName extends string> {
 		if (this.uninitializer) this.uninitializer();
 
 		for (let i = 0; i < this.eventSubscriptions.length; i++) {
-			const [event, listener] = this.eventSubscriptions[i];
-			// @ts-ignore
-			offEvent(event, listener);
+			const [store, event, listener] = this.eventSubscriptions[i];
+			store.off(event, listener as any);
 		}
+		this.eventSubscriptions.length = 0;
 	}
 }

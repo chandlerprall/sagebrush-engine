@@ -1,4 +1,4 @@
-import { app, onEvent, dispatchEvent, setResource, getResource, Accessor } from './state';
+import { app, setResource, getResource, Accessor, Eventable } from './state';
 import { messageServer, onMessage, offMessage } from './socket';
 import Plugin, { PluginFunctions, SaveableData } from './Plugin';
 import Log from './Log';
@@ -14,11 +14,11 @@ declare global {
 			entry: string;
 		}
 
-		interface Events {
-			LOAD_PLUGINS: null;
-			PLUGIN_LOADED: Plugin<string>;
-			INITIALIZE_PLUGINS: null;
-		}
+		// interface Events {
+		// 	LOAD_PLUGINS: null;
+		// 	PLUGIN_LOADED: Plugin<string>;
+		// 	INITIALIZE_PLUGINS: null;
+		// }
 	}
 }
 
@@ -37,7 +37,8 @@ window.registerPlugin = (name, initializer) => {
 	}
 };
 
-export function getPlugin<PluginName extends string>(pluginName: PluginName): Accessor<App.Plugins[PluginName]> {
+export function getPlugin<PluginName extends string, ReturnType = Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>>(pluginName: PluginName): ReturnType {
+	if (pluginName === 'app') return app as any;
 	const pluginsArray = plugins.entries();
 	for (const [name, plugin] of pluginsArray) {
 		if (name === pluginName) {
@@ -45,7 +46,7 @@ export function getPlugin<PluginName extends string>(pluginName: PluginName): Ac
 		}
 	}
 	log.error(`getPlugin requested "${pluginName}" but that plugin does not exist`);
-	return undefined as unknown as Accessor<App.Plugins[PluginName]>;
+	return undefined as unknown as ReturnType;
 }
 
 export function collectPluginSaveData() {
@@ -94,7 +95,7 @@ export function setPluginConfigData(data: { [key: string]: SaveableData }) {
 	}
 }
 
-onEvent('LOAD_PLUGINS', () => {
+app.onEvent('LOAD_PLUGINS', () => {
 	const onDiscoverPluginsResult: (payload: App.Messages.FromServer['DISCOVER_PLUGINS_RESULT']) => void = ({ plugins: discoveredPlugins }) => {
 		offMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
 		setResource(app.plugins.discovered, discoveredPlugins);
@@ -104,7 +105,7 @@ onEvent('LOAD_PLUGINS', () => {
 			const plugin = new Plugin(pluginDef);
 			plugins.set(pluginDef.name, plugin);
 			plugin.loadingPromise.then(() => {
-				dispatchEvent('PLUGIN_LOADED', plugin);
+				app.dispatchEvent('PLUGIN_LOADED', plugin);
 			});
 		}
 	};
@@ -113,17 +114,17 @@ onEvent('LOAD_PLUGINS', () => {
 	messageServer('DISCOVER_PLUGINS', null);
 });
 
-onEvent('PLUGIN_LOADED', plugin => {
+app.onEvent('PLUGIN_LOADED', plugin => {
 	const loadedPlugins = [...getResource(app.plugins.loaded), plugin];
 	setResource(app.plugins.loaded, loadedPlugins);
 
 	const discoveredPluginsCount = getResource((app.plugins.loaded.length));
 	if (discoveredPluginsCount === loadedPlugins.length) {
-		dispatchEvent('INITIALIZE_PLUGINS', null);
+		app.dispatchEvent('INITIALIZE_PLUGINS', null);
 	}
 });
 
-onEvent('INITIALIZE_PLUGINS', () => {
+app.onEvent('INITIALIZE_PLUGINS', () => {
 	const loadedPlugins = getResource(app.plugins.loaded);
 	const initPromises: Array<Promise<void>> = [];
 	for (let i = 0; i < loadedPlugins.length; i++) {
@@ -139,7 +140,7 @@ onEvent('INITIALIZE_PLUGINS', () => {
 		});
 });
 
-onEvent('FINISHED_LOADING_PLUGINS', () => {
+app.onEvent('FINISHED_LOADING_PLUGINS', () => {
 	setResource(app.currentScreen, app.screens.main);
 });
 

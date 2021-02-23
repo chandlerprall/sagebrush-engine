@@ -1,32 +1,39 @@
-import { onEvent, app, getResource, setResource } from './state';
+import { app, getResource, setResource } from './state';
 import { messageServer, onMessage } from './socket';
 import { collectPluginConfigData, collectPluginSaveData, setPluginConfigData, setPluginSaveData } from './plugins';
-import { SaveableData } from './Plugin';
+import Plugin, { SaveableData } from './Plugin';
 
 declare global {
 	namespace App {
 		interface Events {
-			'APP.EXIT': null;
-			'APP.SAVE': { id: string, meta: SaveableData };
-			'APP.GET_SAVES': null;
-			'APP.LOAD_SAVE': { id: string };
-			'APP.DELETE_SAVE': { id: string };
-			'APP.SAVE_CONFIG': null;
-			'APP.LOAD_CONFIG': null;
+			app: {
+				EXIT: null;
+				SAVE: { id: string, meta: SaveableData };
+				GET_SAVES: null;
+				LOAD_SAVE: { id: string };
+				DELETE_SAVE: { id: string };
+				SAVE_CONFIG: null;
+				LOAD_CONFIG: null;
+
+				LOAD_PLUGINS: null;
+				PLUGIN_LOADED: Plugin<string>;
+				INITIALIZE_PLUGINS: null;
+				FINISHED_LOADING_PLUGINS: null;
+			}
 		}
 	}
 }
 
-onEvent('APP.EXIT', () => {
+app.onEvent('EXIT', () => {
 	messageServer('EXIT', null);
 });
 
-onEvent('APP.SAVE', ({ id, meta }) => {
+app.onEvent('SAVE', ({ id, meta }) => {
 	const data = collectPluginSaveData();
 	messageServer('SAVE', { id, meta, data });
 });
 
-onEvent('APP.GET_SAVES', () => {
+app.onEvent('GET_SAVES', () => {
 	messageServer('GET_SAVES', null);
 });
 onMessage('GET_SAVES_RESULT', ({ saves }) => {
@@ -34,7 +41,7 @@ onMessage('GET_SAVES_RESULT', ({ saves }) => {
 });
 
 let lastSaveId: string;
-onEvent('APP.LOAD_SAVE', ({ id }) => {
+app.onEvent('LOAD_SAVE', ({ id }) => {
 	setResource(app.isLoadingSave, true);
 	lastSaveId = id;
 	messageServer('LOAD_SAVE', { id });
@@ -46,7 +53,7 @@ onMessage('LOAD_SAVE_RESULT', ({ id, data }) => {
 	}
 });
 
-onEvent('APP.DELETE_SAVE', ({ id }) => {
+app.onEvent('DELETE_SAVE', ({ id }) => {
 	messageServer('DELETE_SAVE', { id });
 
 	const saves = getResource(app.saves);
@@ -54,11 +61,11 @@ onEvent('APP.DELETE_SAVE', ({ id }) => {
 	setResource(app.saves, newSaves);
 });
 
-onEvent('APP.SAVE_CONFIG', () => {
+app.onEvent('SAVE_CONFIG', () => {
 	const data = collectPluginConfigData();
 	messageServer('SAVE_CONFIG', data);
 });
-onEvent('APP.LOAD_CONFIG', () => {
+app.onEvent('LOAD_CONFIG', () => {
 	messageServer('LOAD_CONFIG', null);
 });
 onMessage('LOAD_CONFIG_RESULT', (data) => {

@@ -25,10 +25,8 @@ interface AppShape {
 
 declare global {
 	namespace App {
-		interface Plugins {}
-
-		interface Events {
-			FINISHED_LOADING_PLUGINS: null;
+		interface Plugins {
+			app: AppShape;
 		}
 	}
 }
@@ -112,13 +110,31 @@ type SetTypeFromAccessor<T> = T extends primitive
 				: never
 ;
 
-export function makeAccessor<Shape extends object>(store: Store<Shape>, path: string[] = []): Accessor<Shape> {
+export type Eventable<Events> = {
+	dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
+	onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+	offEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+};
+
+export function makeAccessor<Shape, Events>(store: Store<Shape>, path: string[] = []): Accessor<Shape> & Eventable<Events> {
+	function dispatchEvent(event: string, payload: any) {
+		store.dispatch(event, payload);
+	}
+	function onEvent(event: string, listener: (payload: any) => void) {
+		return store.on(event, listener);
+	}
+	function offEvent(event: string, listener: (payload: any) => void) {
+		store.off(event, listener);
+	}
 	return new Proxy(
 		{},
 		{
 			get(_target, prop: string) {
 				if (prop === '__store') return store;
 				if (prop === '__path') return path;
+				if (prop === 'dispatchEvent') return dispatchEvent;
+				if (prop === 'onEvent') return onEvent;
+				if (prop === 'offEvent') return offEvent;
 				return makeAccessor(store, [...path, prop]);
 			}
 		}
@@ -204,19 +220,5 @@ export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>) {
 	store.setPartialState(selector, value);
 }
 
-type EventFunctions = Parameters<Parameters<typeof appStore['on']>[1]>[1];
-
-export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void) {
-	appStore.on(event, listener);
-}
-
-export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void) {
-	appStore.off(event, listener);
-}
-
-export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]) {
-	appStore.dispatch(event, payload);
-}
-
-export const app = makeAccessor(appStore);
+export const app = makeAccessor<AppShape, App.Events['app']>(appStore);
 setResource(app.currentScreen, app.screens.loading);

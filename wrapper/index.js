@@ -59,7 +59,7 @@ function start(config) {
 			windowConfig = getBrowserWindowConfig(windowConfig);
 		}
 		const win = new BrowserWindow(windowConfig);
-		// win.setMenu(null);
+		win.setMenu(null);
 		if (IS_DEVELOPMENT) {
 			win.webContents.openDevTools({
 				mode: 'detach',

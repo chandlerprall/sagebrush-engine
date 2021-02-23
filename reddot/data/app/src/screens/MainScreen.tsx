@@ -4,16 +4,16 @@ import { Button } from '../Button';
 import { PluginFunctions } from 'Plugin';
 import { formatSeconds } from './GameScreen';
 
-export default ({ dispatchEvent, useResource, app, store }: PluginFunctions<'reddot'>) => function MainScreen() {
+export default ({ useResource, app, plugin }: PluginFunctions<'reddot'>) => function MainScreen() {
 	useEffect(() => {
-		dispatchEvent('APP.GET_SAVES', null);
-		dispatchEvent('APP.LOAD_CONFIG', null);
+		app.dispatchEvent('GET_SAVES', null);
+		app.dispatchEvent('LOAD_CONFIG', null);
 	}, []);
 
 	const saves = useResource(app.saves);
 	const save: undefined | { id: string, meta: App.Plugins['reddot']['game'] } = saves[0];
 
-	const highscore = useResource(store.config.highscore);
+	const highscore = useResource(plugin.config.highscore);
 
 	return (
 		<>
@@ -61,7 +61,7 @@ export default ({ dispatchEvent, useResource, app, store }: PluginFunctions<'red
 						}
 						, score: {save.meta.score}
 						<br/>
-						<Button size="l" onClick={() => dispatchEvent('RESUME_GAME', null)}>Continue</Button>
+						<Button size="l" onClick={() => plugin.dispatchEvent('RESUME_GAME', null)}>Continue</Button>
 					</div>
 				)
 			}
@@ -72,11 +72,11 @@ export default ({ dispatchEvent, useResource, app, store }: PluginFunctions<'red
 					width: 100%;
 					text-align: center;
 				`}>
-				<Button size="l" onClick={() => dispatchEvent('START_GAME', { type: 'classic' })}>Classic</Button>
+				<Button size="l" onClick={() => plugin.dispatchEvent('START_GAME', { type: 'classic' })}>Classic</Button>
 				<br/><br/>
-				<Button size="l" onClick={() => dispatchEvent('START_GAME', { type: 'timed' })}>Timed</Button>
+				<Button size="l" onClick={() => plugin.dispatchEvent('START_GAME', { type: 'timed' })}>Timed</Button>
 				<br/><br/>
-				<Button size="l" onClick={() => dispatchEvent('APP.EXIT', null)}>Quit</Button>
+				<Button size="l" onClick={() => app.dispatchEvent('EXIT', null)}>Quit</Button>
 			</div>
 		</>
 	)

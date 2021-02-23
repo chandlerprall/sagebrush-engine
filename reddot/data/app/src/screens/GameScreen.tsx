@@ -21,17 +21,17 @@ to {
 }
 `;
 
-function Game({ dispatchEvent, setResource, useResource, app, store }: PluginFunctions<'reddot'>) {
-	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(store.game);
+function Game({ setResource, useResource, app, plugin }: PluginFunctions<'reddot'>) {
+	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(plugin.game);
 
 	useEffect(() => {
 		if (secondsRemaining === 0 && gametype === 'timed') {
-			dispatchEvent('GAME_OVER', null);
+			plugin.dispatchEvent('GAME_OVER', null);
 		}
 	}, [gametype, secondsRemaining]);
 
 	const onMissClick = () => {
-		dispatchEvent('GAME_OVER', null);
+		plugin.dispatchEvent('GAME_OVER', null);
 	}
 
 	return (
@@ -87,7 +87,7 @@ function Game({ dispatchEvent, setResource, useResource, app, store }: PluginFun
 				`}
 				onClick={(e) => {
 					e.stopPropagation();
-					dispatchEvent('GOTO_MENU', null);
+					plugin.dispatchEvent('GOTO_MENU', null);
 				}}
 			>
 				back
@@ -108,7 +108,7 @@ function Game({ dispatchEvent, setResource, useResource, app, store }: PluginFun
 			`}
 			onClick={(e) => {
 				e.stopPropagation();
-				dispatchEvent('DOT_CLICKED', null)
+				plugin.dispatchEvent('DOT_CLICKED', null)
 			}}
 			/>
 

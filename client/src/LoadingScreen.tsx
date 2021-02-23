@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { app, useResource, dispatchEvent } from './state';
+import { app, useResource } from './state';
 
 export default function LoadingScreen() {
 	const discoveredPlugins = useResource(app.plugins.discovered);
@@ -10,7 +10,7 @@ export default function LoadingScreen() {
 
 	useEffect(() => {
 		if (discoveredPluginsCount > 0 && discoveredPluginsCount === loadedPluginsCount) {
-			dispatchEvent('FINISHED_LOADING_PLUGINS', null);
+			app.dispatchEvent('FINISHED_LOADING_PLUGINS', null);
 		}
 	}, [discoveredPluginsCount, loadedPluginsCount])
 

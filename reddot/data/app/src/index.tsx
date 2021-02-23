@@ -29,37 +29,21 @@ declare global {
 
 declare global {
 	namespace App {
-		// interface UiScreens {
-		// 	game: ComponentType
-		// }
-		//
-		// interface Data {
-		// 	game: {
-		// 		gametype: 'classic' | 'timed';
-		// 		dot: { top: number, left: number };
-		// 		score: number;
-		// 		secondsRemaining: number;
-		// 		isGameOver: boolean;
-		// 	};
-		//
-		// 	config?: {
-		// 		highscore: number;
-		// 	}
-		// }
-
 		interface Events {
-			START_GAME: { type: 'classic' | 'timed' } | null;
-			RESUME_GAME: null;
-			GAME_OVER: null;
-			ADVANCE_TIME: null;
-			DOT_CLICKED: null;
-			GOTO_MENU: null;
+			reddot: {
+				START_GAME: { type: 'classic' | 'timed' } | null;
+				RESUME_GAME: null;
+				GAME_OVER: null;
+				ADVANCE_TIME: null;
+				DOT_CLICKED: null;
+				GOTO_MENU: null;
+			}
 		}
 	}
 }
 
 window.registerPlugin('reddot', function initPlugin(options) {
-	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, app, store, getResource, setResource, onEvent, dispatchEvent } = options;
+	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, app, plugin, getResource, setResource } = options;
 
 	const defaultConfig: App.Plugins['reddot']['config'] = { highscore: 0 };
 
@@ -69,26 +53,26 @@ window.registerPlugin('reddot', function initPlugin(options) {
 	// interval to track the game counter
 	let intervalId: NodeJS.Timeout;
 
-	// save/restore whatever is in store.game
-	onGetSaveData(() => getResource(store.game));
-	onFromSaveData((data) => setResource(store.game, data));
+	// save/restore whatever is in plugin.game
+	onGetSaveData(() => getResource(plugin.game));
+	onFromSaveData((data) => setResource(plugin.game, data));
 
-	// config comes from store.config
-	onGetConfigData(() => getResource(store.config) || defaultConfig);
-	onFromConfigData((data) => setResource(store.config, data));
+	// config comes from plugin.config
+	onGetConfigData(() => getResource(plugin.config) || defaultConfig);
+	onFromConfigData((data) => setResource(plugin.config, data));
 
 	function triggerSave() {
 		const timestamp = Date.now();
-		const { gametype, score, secondsRemaining } = getResource(store.game);
-		dispatchEvent('APP.SAVE', { id: 'latest', meta: { timestamp, score, gametype, secondsRemaining } });
+		const { gametype, score, secondsRemaining } = getResource(plugin.game);
+		app.dispatchEvent('SAVE', { id: 'latest', meta: { timestamp, score, gametype, secondsRemaining } });
 	}
 
 	// register event handlers
-	onEvent('START_GAME', (config) => {
+	plugin.onEvent('START_GAME', (config) => {
 		if (config) {
 			// initialize game data
 			const { type } = config;
-			setResource(store.game, {
+			setResource(plugin.game, {
 				isGameOver: false,
 				gametype: type,
 				dot: createPosition(),
@@ -98,51 +82,51 @@ window.registerPlugin('reddot', function initPlugin(options) {
 		}
 
 		// move to game screen
-		setResource(app.currentScreen, store.screens.game);
+		setResource(app.currentScreen, plugin.screens.game);
 
 		clearInterval(intervalId); // just in case
-		intervalId = setInterval(() => dispatchEvent('ADVANCE_TIME', null), 1000);
+		intervalId = setInterval(() => plugin.dispatchEvent('ADVANCE_TIME', null), 1000);
 	});
 
-	onEvent('RESUME_GAME', () => {
-		dispatchEvent('APP.LOAD_SAVE', { id: 'latest' });
-		dispatchEvent('START_GAME', null);
+	plugin.onEvent('RESUME_GAME', () => {
+		app.dispatchEvent('LOAD_SAVE', { id: 'latest' });
+		plugin.dispatchEvent('START_GAME', null);
 	});
 
-	onEvent('GAME_OVER', () => {
-		dispatchEvent('APP.DELETE_SAVE', { id: 'latest' })
+	plugin.onEvent('GAME_OVER', () => {
+		app.dispatchEvent('DELETE_SAVE', { id: 'latest' })
 		clearInterval(intervalId);
-		setResource(store.game.isGameOver, true);
+		setResource(plugin.game.isGameOver, true);
 	});
 
-	onEvent('ADVANCE_TIME', () => {
-		const secondsRemaining = getResource(store.game.secondsRemaining);
-		setResource(store.game.secondsRemaining, secondsRemaining - 1);
+	plugin.onEvent('ADVANCE_TIME', () => {
+		const secondsRemaining = getResource(plugin.game.secondsRemaining);
+		setResource(plugin.game.secondsRemaining, secondsRemaining - 1);
 		triggerSave();
 	});
 
-	onEvent('DOT_CLICKED', () => {
-		const score = getResource(store.game.score);
+	plugin.onEvent('DOT_CLICKED', () => {
+		const score = getResource(plugin.game.score);
 		const newScore = score + 1;
-		setResource(store.game.score, newScore);
-		setResource(store.game.dot, createPosition());
+		setResource(plugin.game.score, newScore);
+		setResource(plugin.game.dot, createPosition());
 		triggerSave();
 
-		const highscore = getResource(store.config.highscore) ?? 0;
+		const highscore = getResource(plugin.config.highscore) ?? 0;
 		if (newScore > highscore) {
-			setResource(store.config.highscore, newScore);
-			dispatchEvent('APP.SAVE_CONFIG', null);
+			setResource(plugin.config.highscore, newScore);
+			app.dispatchEvent('SAVE_CONFIG', null);
 		}
 	});
 
-	onEvent('GOTO_MENU', () => {
+	plugin.onEvent('GOTO_MENU', () => {
 		clearInterval(intervalId);
 		setResource(app.currentScreen, app.screens.main);
 	});
 
 	// register resources
 	setResource(app.screens.main, MainScreen(options));
-	setResource(store.screens.game, GameScreen(options));
+	setResource(plugin.screens.game, GameScreen(options));
 
 	log.debug('initialized');
 

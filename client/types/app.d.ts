@@ -50,13 +50,11 @@ declare module "state" {
     global {
         namespace App {
             interface Plugins {
-            }
-            interface Events {
-                FINISHED_LOADING_PLUGINS: null;
+                app: AppShape;
             }
         }
     }
-    export const store: Store<AppShape>;
+    export const appStore: Store<AppShape>;
     type primitive = string | number | boolean | undefined | null;
     class Undefined<T> {
         private t;
@@ -70,15 +68,35 @@ declare module "state" {
     };
     type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? ForceOptional extends true ? SubShape | undefined : SubShape : ForceOptional extends true ? Shape | undefined : Shape : never;
     type SetTypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
-    export function makeAccessor<Shape extends object>(store: Store<Shape>, path?: string[]): Accessor<Shape>;
+    export type Eventable<Events> = {
+        dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
+        onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+        offEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+    };
+    export function makeAccessor<Shape, Events>(store: Store<Shape>, path?: string[]): Accessor<Shape> & Eventable<Events>;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
     export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>): void;
-    type EventFunctions = Parameters<Parameters<typeof store['on']>[1]>[1];
-    export function onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event], fns: EventFunctions) => void): void;
-    export function offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
-    export function dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-    export const state: Accessor<AppShape, false>;
+    export const app: Accessor<AppShape, false> & Eventable<{
+        EXIT: null;
+        SAVE: {
+            id: string;
+            meta: import("Plugin").SaveableData;
+        };
+        GET_SAVES: null;
+        LOAD_SAVE: {
+            id: string;
+        };
+        DELETE_SAVE: {
+            id: string;
+        };
+        SAVE_CONFIG: null;
+        LOAD_CONFIG: null;
+        LOAD_PLUGINS: null;
+        PLUGIN_LOADED: Plugin<string>;
+        INITIALIZE_PLUGINS: null;
+        FINISHED_LOADING_PLUGINS: null;
+    }>;
 }
 declare module "socket" {
     import { ReactNode, ReactElement } from 'react';
@@ -138,8 +156,8 @@ declare module "socket" {
     }): ReactElement;
 }
 declare module "plugins" {
-    import { Accessor } from "state";
-    import Plugin, { PluginFunctions, SaveableData } from "Plugin";
+    import { Accessor, Eventable } from "state";
+    import { PluginFunctions, SaveableData } from "Plugin";
     global {
         namespace App {
             interface PluginDefinition {
@@ -148,11 +166,6 @@ declare module "plugins" {
                 description: string;
                 entry: string;
             }
-            interface Events {
-                LOAD_PLUGINS: null;
-                PLUGIN_LOADED: Plugin<string>;
-                INITIALIZE_PLUGINS: null;
-            }
         }
     }
     global {
@@ -160,7 +173,7 @@ declare module "plugins" {
             registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void)): void;
         }
     }
-    export function getPlugin<PluginName extends string>(pluginName: PluginName): Accessor<App.Plugins[PluginName]>;
+    export function getPlugin<PluginName extends string, ReturnType = Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>>(pluginName: PluginName): ReturnType;
     export function collectPluginSaveData(): {
         [key: string]: SaveableData;
     };
@@ -175,7 +188,7 @@ declare module "plugins" {
     }): void;
 }
 declare module "Plugin" {
-    import { getResource, useResource, setResource, state, Accessor } from "state";
+    import { getResource, useResource, setResource, app, Accessor, Eventable } from "state";
     import Log from "Log";
     export type SaveableData = Object | Array<any>;
     global {
@@ -183,15 +196,15 @@ declare module "Plugin" {
             interface Plugins {
                 [key: string]: Object;
             }
+            interface Events {
+                [key: string]: Object;
+            }
         }
     }
     export interface PluginFunctions<PluginName extends string> {
-        getPlugin: <PluginName extends string>(pluginName: PluginName) => Accessor<App.Plugins[PluginName]>;
-        app: typeof state;
-        store: Accessor<App.Plugins[PluginName]>;
-        dispatchEvent<Event extends keyof App.Events>(event: Event, payload: App.Events[Event]): void;
-        onEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
-        offEvent<Event extends keyof App.Events>(event: Event, listener: (payload: App.Events[Event]) => void): void;
+        getPlugin: <GottenPlugin extends string>(pluginName: GottenPlugin) => Accessor<App.Plugins[GottenPlugin]> & Eventable<App.Events[GottenPlugin]>;
+        app: typeof app;
+        plugin: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
         useResource: typeof useResource;
         getResource: typeof getResource;
         setResource: typeof setResource;
@@ -213,16 +226,13 @@ declare module "Plugin" {
         private log;
         private eventSubscriptions;
         private store;
-        accessor: Accessor<App.Plugins[PluginName]>;
+        accessor: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
         initializer?: (args: PluginFunctions<PluginName>) => void | (() => void);
         private uninitializer?;
-        private dispatchEvent;
-        private onEvent;
-        private offEvent;
-        private pluginFunctions;
         isLoaded: boolean;
         loadingPromise: Promise<undefined | Event | string>;
         constructor(definition: App.PluginDefinition);
+        private getPlugin;
         private setOnGetSaveData;
         private setOnFromSaveData;
         private setOnGetConfigData;
@@ -233,24 +243,30 @@ declare module "Plugin" {
     }
 }
 declare module "events" {
-    import { SaveableData } from "Plugin";
+    import Plugin, { SaveableData } from "Plugin";
     global {
         namespace App {
             interface Events {
-                'APP.EXIT': null;
-                'APP.SAVE': {
-                    id: string;
-                    meta: SaveableData;
+                app: {
+                    EXIT: null;
+                    SAVE: {
+                        id: string;
+                        meta: SaveableData;
+                    };
+                    GET_SAVES: null;
+                    LOAD_SAVE: {
+                        id: string;
+                    };
+                    DELETE_SAVE: {
+                        id: string;
+                    };
+                    SAVE_CONFIG: null;
+                    LOAD_CONFIG: null;
+                    LOAD_PLUGINS: null;
+                    PLUGIN_LOADED: Plugin<string>;
+                    INITIALIZE_PLUGINS: null;
+                    FINISHED_LOADING_PLUGINS: null;
                 };
-                'APP.GET_SAVES': null;
-                'APP.LOAD_SAVE': {
-                    id: string;
-                };
-                'APP.DELETE_SAVE': {
-                    id: string;
-                };
-                'APP.SAVE_CONFIG': null;
-                'APP.LOAD_CONFIG': null;
             }
         }
     }
