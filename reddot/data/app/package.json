@@ -3,7 +3,6 @@
   "description": "Whole reddot game",
   "version": "0.0.0-alpha",
   "private": true,
-  "main": "dist/index.js",
   "scripts": {
     "dev": "webpack -w",
     "build-types": "tsc"

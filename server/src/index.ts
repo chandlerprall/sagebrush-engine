@@ -184,8 +184,14 @@ export function startServer(config: StartServerConfig) {
 						res.end();
 					}
 				} else if (requestUrl.startsWith('/plugins/')) {
+					if (requestUrl.indexOf('/..')) {
+						res.statusCode = 403;
+						res.end();
+					}
 					const requestPath = requestUrl.replace('/plugins/', '');
-					const requestTarget = join(pluginDirectory, requestPath);
+					const requestPathSegments = requestPath.split('/');
+					requestPathSegments.splice(1, 0, 'dist');
+					const requestTarget = join(pluginDirectory, requestPathSegments.join('/'));
 					try {
 						const file = await readFile(requestTarget);
 						res.writeHead(200);

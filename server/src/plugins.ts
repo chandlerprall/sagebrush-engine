@@ -3,7 +3,7 @@ import glob from 'glob';
 import { promises } from 'fs';
 import json from 'json5';
 
-const { readFile, stat } = promises;
+const { readFile } = promises;
 
 interface PackageDetails {
 	name: string;
@@ -62,17 +62,14 @@ export async function discoverPlugin(pluginDirectory: string, packageLocation: s
 			if (isPackageDetails(packageDetails) === false) {
 				throw new Error(`File at ${packageLocation} is not valid json5`);
 			}
-			const { name, version, description, main = 'index.js' } = packageDetails;
+			const { name, version, description } = packageDetails;
 			const packageDirectory = dirname(packageLocation);
-			let entry = join(packageDirectory, main);
 
 			// resolve entry if it points at a directory
-			const stats = await stat(entry);
-			if (stats.isDirectory()) entry = join(entry, 'index.js');
 
-			const relativeEntry = join('plugins', relative(pluginDirectory, entry)).replace(/\\/g, '/');
+			const entry = join('plugins', relative(pluginDirectory, join(packageDirectory, 'index.js'))).replace(/\\/g, '/');
 
-			resolve({ name, version, description, entry: relativeEntry, directory: packageDirectory });
+			resolve({ name, version, description, entry, directory: packageDirectory });
 		} catch(e) {
 			reject(e);
 		}

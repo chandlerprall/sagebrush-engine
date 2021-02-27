@@ -39,7 +39,12 @@ module.exports = {
 						['@babel/preset-env', {targets: {chrome: '87'}}],
 					],
 					plugins: [
-						'@emotion/babel-plugin'
+						[
+							'@emotion/babel-plugin',
+							{
+								sourceMap: false,
+							}
+						],
 					]
 				}
 			}
