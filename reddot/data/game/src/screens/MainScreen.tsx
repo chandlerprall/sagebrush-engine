@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { css } from '@emotion/react';
-import { Button } from '../Button';
 import { PluginFunctions } from 'Plugin';
 import { formatSeconds } from './GameScreen';
 
@@ -9,6 +8,8 @@ export default ({ useResource, app, plugin }: PluginFunctions<'reddot'>) => func
 		app.dispatchEvent('GET_SAVES', null);
 		app.dispatchEvent('LOAD_CONFIG', null);
 	}, []);
+
+	const Button = useResource(plugin.components.button);
 
 	const saves = useResource(app.saves);
 	const save: undefined | { id: string, meta: App.Plugins['reddot']['game'] } = saves[0];

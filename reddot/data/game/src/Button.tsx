@@ -1,7 +1,8 @@
-import React, { Attributes, ButtonHTMLAttributes } from 'react';
+import React from 'react';
 import { css } from '@emotion/react';
+import { ButtonProps } from './plugin';
 
-export function Button({ children, size = 's', ...props }: { css?: Attributes['css'], size?: 's' | 'l' } & ButtonHTMLAttributes<HTMLButtonElement>) {
+export function Button({ children, size = 's', ...props }: ButtonProps) {
 	const style = css`
 		background-color: #e3eaea;
 		border: 1px solid #333;

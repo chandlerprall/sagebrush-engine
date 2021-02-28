@@ -1,46 +1,7 @@
-import { ComponentType } from 'react';
 import MainScreen from './screens/MainScreen';
 import GameScreen from './screens/GameScreen';
+import { Button } from './Button';
 import createPosition from './createPosition';
-
-declare global {
-	namespace App {
-		interface Plugins {
-			reddot: {
-				screens: {
-					game: ComponentType;
-				};
-
-				game: {
-					gametype: 'classic' | 'timed';
-					dot: { top: number, left: number };
-					score: number;
-					secondsRemaining: number;
-					isGameOver: boolean;
-				};
-
-				config?: {
-					highscore: number;
-				}
-			}
-		}
-	}
-}
-
-declare global {
-	namespace App {
-		interface Events {
-			reddot: {
-				START_GAME: { type: 'classic' | 'timed' } | null;
-				RESUME_GAME: null;
-				GAME_OVER: null;
-				ADVANCE_TIME: null;
-				DOT_CLICKED: null;
-				GOTO_MENU: null;
-			}
-		}
-	}
-}
 
 window.registerPlugin('reddot', function initPlugin(options) {
 	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, app, plugin, getResource, setResource } = options;
@@ -127,6 +88,7 @@ window.registerPlugin('reddot', function initPlugin(options) {
 	// register resources
 	setResource(app.screens.main, MainScreen(options));
 	setResource(plugin.screens.game, GameScreen(options));
+	setResource(plugin.components.button, Button);
 
 	log.debug('initialized');
 

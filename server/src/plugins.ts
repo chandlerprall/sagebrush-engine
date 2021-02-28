@@ -5,12 +5,13 @@ import json from 'json5';
 
 const { readFile } = promises;
 
-interface PackageDetails {
+export interface PackageDetails {
 	name: string;
 	version: string;
 	description: string;
 	entry: string;
 	directory: string;
+	dependencies: string[];
 }
 
 function isPackageDetails(x: any): x is PackageDetails {
@@ -62,14 +63,14 @@ export async function discoverPlugin(pluginDirectory: string, packageLocation: s
 			if (isPackageDetails(packageDetails) === false) {
 				throw new Error(`File at ${packageLocation} is not valid json5`);
 			}
-			const { name, version, description } = packageDetails;
+			const { name, version, description, pluginDependencies } = packageDetails;
 			const packageDirectory = dirname(packageLocation);
 
 			// resolve entry if it points at a directory
 
 			const entry = join('plugins', relative(pluginDirectory, join(packageDirectory, 'index.js'))).replace(/\\/g, '/');
 
-			resolve({ name, version, description, entry, directory: packageDirectory });
+			resolve({ name, version, description, entry, directory: packageDirectory, dependencies: Object.keys(pluginDependencies || {}) });
 		} catch(e) {
 			reject(e);
 		}

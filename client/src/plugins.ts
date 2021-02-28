@@ -13,18 +13,12 @@ declare global {
 			description: string;
 			entry: string;
 		}
-
-		// interface Events {
-		// 	LOAD_PLUGINS: null;
-		// 	PLUGIN_LOADED: Plugin<string>;
-		// 	INITIALIZE_PLUGINS: null;
-		// }
 	}
 }
 
 declare global {
 	interface Window {
-		registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void)): void;
+		registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>): void | Promise<void>;
 	}
 }
 const plugins = new Map<string, Plugin<string>>();
@@ -96,18 +90,21 @@ export function setPluginConfigData(data: { [key: string]: SaveableData }) {
 }
 
 app.onEvent('LOAD_PLUGINS', () => {
-	const onDiscoverPluginsResult: (payload: App.Messages.FromServer['DISCOVER_PLUGINS_RESULT']) => void = ({ plugins: discoveredPlugins }) => {
+	const onDiscoverPluginsResult: (payload: App.Messages.FromServer['DISCOVER_PLUGINS_RESULT']) => void = async ({ plugins: discoveredPlugins }) => {
 		offMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
 		setResource(app.plugins.discovered, discoveredPlugins);
 
+		const pluginLoadPromises: Promise<any>[] = [];
 		for (let i = 0; i < discoveredPlugins.length; i++) {
 			const pluginDef = discoveredPlugins[i];
 			const plugin = new Plugin(pluginDef);
 			plugins.set(pluginDef.name, plugin);
-			plugin.loadingPromise.then(() => {
-				app.dispatchEvent('PLUGIN_LOADED', plugin);
-			});
+			pluginLoadPromises.push(plugin.loadingPromise);
 		}
+
+		await Promise.all(pluginLoadPromises);
+
+		app.dispatchEvent('INITIALIZE_PLUGINS', null);
 	};
 
 	onMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
@@ -117,30 +114,19 @@ app.onEvent('LOAD_PLUGINS', () => {
 app.onEvent('PLUGIN_LOADED', plugin => {
 	const loadedPlugins = [...getResource(app.plugins.loaded), plugin];
 	setResource(app.plugins.loaded, loadedPlugins);
-
-	const discoveredPluginsCount = getResource((app.plugins.loaded.length));
-	if (discoveredPluginsCount === loadedPlugins.length) {
-		app.dispatchEvent('INITIALIZE_PLUGINS', null);
-	}
 });
 
-app.onEvent('INITIALIZE_PLUGINS', () => {
-	const loadedPlugins = getResource(app.plugins.loaded);
-	const initPromises: Array<Promise<void>> = [];
-	for (let i = 0; i < loadedPlugins.length; i++) {
-		const plugin = loadedPlugins[i];
-		initPromises.push(plugin.initialize());
-	}
-	Promise.all(initPromises)
-		.then(() => {
-			log.info('plugins initialized');
-		})
-		.catch(e => {
-			log.error(e);
-		});
-});
+app.onEvent('INITIALIZE_PLUGINS', async () => {
+	const discoveredPlugins = getResource(app.plugins.discovered);
 
-app.onEvent('FINISHED_LOADING_PLUGINS', () => {
+	for (let i = 0; i < discoveredPlugins.length; i++) {
+		const pluginDefinition = discoveredPlugins[i];
+		const plugin = plugins.get(pluginDefinition.name)!;
+		await plugin.initialize();
+		app.dispatchEvent('PLUGIN_LOADED', plugin);
+	}
+
+	log.info('plugins initialized');
 	setResource(app.currentScreen, app.screens.main);
 });
 

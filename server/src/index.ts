@@ -6,7 +6,8 @@ import SocketIo from 'socket.io';
 import chokidar from 'chokidar';
 // @ts-ignore
 import findup from 'findup';
-import { discoverPlugin, discoverPlugins } from './plugins';
+import { DepGraph } from 'dependency-graph';
+import { discoverPlugin, discoverPlugins, PackageDetails } from './plugins';
 
 const { readFile, open, writeFile, mkdir, readdir, stat, unlink } = fspromises;
 
@@ -80,10 +81,28 @@ export function startServer(config: StartServerConfig) {
 						pluginWatcher.on('change', reloadPlugin);
 					});
 
+					const pluginMap: { [key: string]: PackageDetails } = {};
+					const depGraph = new DepGraph();
+					for (let i = 0; i < plugins.length; i++) {
+						const plugin = plugins[i];
+						const { name } = plugin;
+						pluginMap[name] = plugin;
+						depGraph.addNode(name, plugin);
+					}
+					for (let i = 0; i < plugins.length; i++) {
+						const plugin = plugins[i];
+						const { name, dependencies } = plugin;
+						for (let j = 0; j < dependencies.length; j++) {
+							depGraph.addDependency(name, dependencies[j]);
+						}
+					}
+
+					const pluginOrder = depGraph.overallOrder();
+
 					client.send({
 						type: 'DISCOVER_PLUGINS_RESULT',
 						payload: {
-							plugins,
+							plugins: pluginOrder.map(name => pluginMap[name]),
 						},
 					});
 				} else if (type === 'SAVE') {
@@ -184,7 +203,7 @@ export function startServer(config: StartServerConfig) {
 						res.end();
 					}
 				} else if (requestUrl.startsWith('/plugins/')) {
-					if (requestUrl.indexOf('/..')) {
+					if (requestUrl.includes('/..')) {
 						res.statusCode = 403;
 						res.end();
 					}

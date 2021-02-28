@@ -132,7 +132,7 @@ export default class Plugin<PluginName extends string> {
 		if (this.initializer === undefined) {
 			this.log.error('initialize called without an initializer');
 		} else {
-			this.uninitializer = this.initializer({
+			this.uninitializer = await this.initializer({
 				app: this.getPlugin('app') as any,
 				plugin: this.getPlugin(this.name),
 				getPlugin: this.getPlugin,

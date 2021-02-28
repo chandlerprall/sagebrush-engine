@@ -95,7 +95,6 @@ declare module "state" {
         LOAD_PLUGINS: null;
         PLUGIN_LOADED: Plugin<string>;
         INITIALIZE_PLUGINS: null;
-        FINISHED_LOADING_PLUGINS: null;
     }>;
 }
 declare module "socket" {
@@ -170,7 +169,7 @@ declare module "plugins" {
     }
     global {
         interface Window {
-            registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void)): void;
+            registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>): void | Promise<void>;
         }
     }
     export function getPlugin<PluginName extends string, ReturnType = Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>>(pluginName: PluginName): ReturnType;
@@ -265,7 +264,6 @@ declare module "events" {
                     LOAD_PLUGINS: null;
                     PLUGIN_LOADED: Plugin<string>;
                     INITIALIZE_PLUGINS: null;
-                    FINISHED_LOADING_PLUGINS: null;
                 };
             }
         }

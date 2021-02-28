@@ -1,4 +1,5 @@
 const { join } = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
 	mode: 'development',
@@ -49,5 +50,13 @@ module.exports = {
 				}
 			}
 		]
-	}
-}
+	},
+
+	plugins: [
+		new CopyPlugin({
+			patterns: [
+				{ from: join(__dirname, 'src', 'plugin.d.ts'), to: 'plugin.d.ts' },
+			],
+		}),
+	],
+};

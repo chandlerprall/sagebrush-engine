@@ -18,7 +18,6 @@ declare global {
 				LOAD_PLUGINS: null;
 				PLUGIN_LOADED: Plugin<string>;
 				INITIALIZE_PLUGINS: null;
-				FINISHED_LOADING_PLUGINS: null;
 			}
 		}
 	}
