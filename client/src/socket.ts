@@ -1,4 +1,3 @@
-import React, { ReactNode, ReactElement } from 'react';
 import { io as ClientSocket } from 'socket.io-client';
 import { SaveableData } from './Plugin';
 
@@ -66,20 +65,4 @@ export function offMessage<Message extends keyof App.Messages.FromServer>(messag
 
 export function messageServer<Message extends keyof App.Messages.FromClient>(type: Message, payload: App.Messages.FromClient[Message]) {
 	socket.send({ type, payload });
-}
-
-interface SocketContextShape {
-	socket: ReturnType<typeof ClientSocket>;
-}
-
-const SocketContext = React.createContext<SocketContextShape>({ socket: undefined as any as ReturnType<typeof ClientSocket> });
-
-const socketContextValue = { socket };
-
-export default function Socket({ children }: { children: ReactNode }): ReactElement {
-	return (
-		<SocketContext.Provider value={socketContextValue}>
-			{children}
-		</SocketContext.Provider>
-	)
 }

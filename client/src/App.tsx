@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import Socket from './socket';
 import { app, useResource } from './state';
 import './plugins';
 
@@ -10,8 +9,6 @@ export default function App() {
 
 	const Screen = useResource(app.currentScreen);
 	return (
-		<Socket>
-			<Screen />
-		</Socket>
+		<Screen />
 	);
 }

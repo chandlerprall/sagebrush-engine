@@ -5,6 +5,7 @@
   "main": "index.js",
   "license": "private",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build-for-web": "node build"
   }
 }

@@ -6,6 +6,7 @@
   "scripts": {
     "build-types": "tsc",
     "build": "webpack -c ./webpack.config.js",
+    "build-web": "webpack -c ./webpack-web.config.js",
     "dev": "webpack -c ./webpack.config.js -w"
   },
   "devDependencies": {

@@ -4,7 +4,8 @@ app.commandLine.appendSwitch ('disable-http-cache');
 const { startServer } = require('../server/build');
 
 function start(config) {
-	const { serverConfig, getBrowserWindowConfig, onWindowLoad } = config;
+	const { indexFileLocation, pluginDirectory, getBrowserWindowConfig, onWindowLoad } = config;
+	const serverConfig = { indexFileLocation, pluginDirectory };
 
 	const IS_DEVELOPMENT = true;
 
@@ -96,6 +97,9 @@ function start(config) {
 	});
 }
 
+const buildForWeb = require('./build');
+
 module.exports = {
 	start,
+	buildForWeb,
 };

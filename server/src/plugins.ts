@@ -2,6 +2,7 @@ import { dirname, join, relative } from 'path';
 import glob from 'glob';
 import { promises } from 'fs';
 import json from 'json5';
+import { DepGraph } from 'dependency-graph';
 
 const { readFile } = promises;
 
@@ -49,7 +50,26 @@ export async function discoverPlugins(pluginDirectory: string): Promise<PackageD
 						pluginDirsToWatch.push(dirname(packageLocations[i]));
 					}
 
-					resolve(plugins);
+					// resolve dependency load order
+					const pluginMap: { [key: string]: PackageDetails } = {};
+					const depGraph = new DepGraph();
+					for (let i = 0; i < plugins.length; i++) {
+						const plugin = plugins[i];
+						const { name } = plugin;
+						pluginMap[name] = plugin;
+						depGraph.addNode(name, plugin);
+					}
+					for (let i = 0; i < plugins.length; i++) {
+						const plugin = plugins[i];
+						const { name, dependencies } = plugin;
+						for (let j = 0; j < dependencies.length; j++) {
+							depGraph.addDependency(name, dependencies[j]);
+						}
+					}
+
+					const pluginOrder = depGraph.overallOrder();
+
+					resolve(pluginOrder.map(name => pluginMap[name]));
 				}
 			}
 		);
