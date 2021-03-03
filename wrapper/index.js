@@ -1,7 +1,7 @@
 const {app, BrowserWindow, session} = require('electron');
 app.commandLine.appendSwitch ('disable-http-cache');
 
-const { startServer } = require('../server/build');
+const { startServer } = require('@sagebrush/engine-server');
 
 function start(config) {
 	const { indexFileLocation, pluginDirectory, getBrowserWindowConfig, onWindowLoad } = config;

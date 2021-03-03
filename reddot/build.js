@@ -1,8 +1,8 @@
 const { join } = require('path');
-const buildForWeb = require('sector-wrapper/build');
+const buildForWeb = require('@sagebrush-engine/build');
 
 buildForWeb({
 	indexFileLocation: join(__dirname, 'index.html'),
 	pluginDirectory: join(__dirname, 'data'),
-	outputDir: join(__dirname, 'web'),
+	outputDir: join(__dirname, 'webbuild'),
 });

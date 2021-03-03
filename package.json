@@ -1,4 +1,4 @@
 {
   "private": true,
-  "workspaces": ["wrapper", "server", "client", "sample-project", "reddot"]
+  "workspaces": ["wrapper", "server", "client", "reddot", "reddot/data/game"]
 }

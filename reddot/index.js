@@ -1,5 +1,5 @@
 const { join } = require('path');
-const { start } = require('sector-wrapper');
+const { start } = require('@sagebrush/engine');
 
 start({
 	indexFileLocation: join(__dirname, 'index.html'),

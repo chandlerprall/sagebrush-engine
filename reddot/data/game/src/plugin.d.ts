@@ -5,7 +5,7 @@ export type ButtonProps = { css?: Attributes['css'], size?: 's' | 'l' } & Button
 declare global {
 	namespace App {
 		interface Plugins {
-			reddot: {
+			'reddot-game': {
 				screens: {
 					game: ComponentType;
 				};
@@ -33,7 +33,7 @@ declare global {
 declare global {
 	namespace App {
 		interface Events {
-			reddot: {
+			'reddot-game': {
 				START_GAME: { type: 'classic' | 'timed' } | null;
 				RESUME_GAME: null;
 				GAME_OVER: null;

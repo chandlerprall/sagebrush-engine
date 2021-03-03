@@ -98,7 +98,6 @@ declare module "state" {
     }>;
 }
 declare module "socket" {
-    import { ReactNode, ReactElement } from 'react';
     import { SaveableData } from "Plugin";
     global {
         namespace App {
@@ -150,9 +149,6 @@ declare module "socket" {
     export function onMessage<Message extends keyof App.Messages.FromServer>(message: Message, listener: (payload: App.Messages.FromServer[Message]) => void): void;
     export function offMessage<Message extends keyof App.Messages.FromServer>(message: Message, listener: (payload: App.Messages.FromServer[Message]) => void): void;
     export function messageServer<Message extends keyof App.Messages.FromClient>(type: Message, payload: App.Messages.FromClient[Message]): void;
-    export default function Socket({ children }: {
-        children: ReactNode;
-    }): ReactElement;
 }
 declare module "plugins" {
     import { Accessor, Eventable } from "state";
@@ -268,6 +264,11 @@ declare module "events" {
             }
         }
     }
+}
+declare module "socket.web" {
+    export function onMessage<Message extends keyof App.Messages.FromServer>(message: Message, listener: (payload: App.Messages.FromServer[Message]) => void): void;
+    export function offMessage<Message extends keyof App.Messages.FromServer>(message: Message, listener: (payload: App.Messages.FromServer[Message]) => void): void;
+    export function messageServer<Message extends keyof App.Messages.FromClient>(type: Message, payload: App.Messages.FromClient[Message]): Promise<void>;
 }
 declare module "App" {
     import "plugins";

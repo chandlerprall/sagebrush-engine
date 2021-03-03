@@ -1,12 +1,16 @@
+/// <reference types="@emotion/react/types/css-prop" />
+/// <reference types="@sagebrush/engine-client/types/insula" />
+/// <reference types="@sagebrush/engine-client/types/app" />
+
 import MainScreen from './screens/MainScreen';
 import GameScreen from './screens/GameScreen';
 import { Button } from './Button';
 import createPosition from './createPosition';
 
-window.registerPlugin('reddot', function initPlugin(options) {
+window.registerPlugin('reddot-game', function initPlugin(options) {
 	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, app, plugin, getResource, setResource } = options;
 
-	const defaultConfig: App.Plugins['reddot']['config'] = { highscore: 0 };
+	const defaultConfig: App.Plugins['reddot-game']['config'] = { highscore: 0 };
 
 	log.enabled = true;
 	log.level = 'debug';

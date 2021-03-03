@@ -1,5 +1,5 @@
 {
-  "name": "reddot",
+  "name": "reddot-game",
   "description": "Whole reddot game",
   "version": "0.0.0-alpha",
   "private": true,
@@ -8,13 +8,14 @@
     "build-types": "tsc"
   },
   "dependencies": {
-    "sector-client": "0.0.0-alpha"
+    "@sagebrush/engine-client": "0.0.0-alpha"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
     "@babel/preset-env": "^7.12.11",
     "@babel/preset-react": "^7.12.10",
     "@emotion/react": "^11.1.5",
+    "babel-loader": "^8.2.2",
     "copy-webpack-plugin": "^7.0.0",
     "typescript": "^4.1.3",
     "webpack": "^5.19.0",

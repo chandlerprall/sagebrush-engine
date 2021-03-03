@@ -1,5 +1,5 @@
 {
-  "name": "sector-client",
+  "name": "@sagebrush/engine-client",
   "version": "0.0.0-alpha",
   "license": "private",
   "private": true,

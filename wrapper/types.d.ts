@@ -1,4 +1,4 @@
-declare module 'sector-wrapper' {
+declare module '@sagebrush/engine' {
 	interface SectorConfig {
 		pluginDirectory: string;
 	}
