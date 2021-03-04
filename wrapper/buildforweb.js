@@ -1,10 +1,12 @@
-const { promises: { mkdir, copyFile, writeFile } } = require('fs');
+const { promises: { mkdir, copyFile, readFile, writeFile } } = require('fs');
 const { join } = require('path');
 const { copy } = require('fs-extra');
-const { discoverPlugins } = require('../server/build/plugins');
+const cheerio = require('cheerio');
+const { discoverPlugins } = require('@sagebrush/engine-server/build/plugins');
+const makeCSP = require('./csp');
 
 async function buildForWeb(config) {
-	const { indexFileLocation, pluginDirectory, outputDir } = config;
+	const { indexFileLocation, pluginDirectory, outputDir, serverOrigin } = config;
 	const clientDir = join(__dirname, '..', 'client', 'build');
 
 	// array of promises to await at the end
@@ -13,8 +15,11 @@ async function buildForWeb(config) {
 	// create the output dir
 	await mkdir(outputDir, { recursive: true });
 
-	// copy index file
-	awaitables.push(copyFile(indexFileLocation, join(outputDir, 'index.html')));
+	// process & write index file
+	const indexContents = await readFile(indexFileLocation, 'utf-8');
+	const indexHtml = cheerio.load(indexContents);
+	indexHtml('head').append(`<meta http-equiv="Content-Security-Policy" content="${makeCSP({ isDevelopment: false, serverOrigin })}">`);
+	awaitables.push(writeFile(join(outputDir, 'index.html'), indexHtml.html()));
 
 	// copy client bundle
 	awaitables.push(copy(join(clientDir, 'app-web.js'), join(outputDir, 'client', 'app.js')));

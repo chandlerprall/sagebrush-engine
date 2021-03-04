@@ -2,6 +2,7 @@ const {app, BrowserWindow, session} = require('electron');
 app.commandLine.appendSwitch ('disable-http-cache');
 
 const { startServer } = require('@sagebrush/engine-server');
+const makeCSP = require('./csp');
 
 function start(config) {
 	const { indexFileLocation, pluginDirectory, getBrowserWindowConfig, onWindowLoad } = config;
@@ -32,10 +33,7 @@ function start(config) {
 			});
 
 		session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-			const csp = IS_DEVELOPMENT
-				// lax CSP required for devtools
-				? `default-src 'none'; connect-src ${SERVER_ADDRESS} ${SERVER_ADDRESS.replace('http', 'ws')}; script-src ${SERVER_ADDRESS} 'sha256-/fXMeAizDJK+4tDvd/8824gAqTphH6OAa7eWO0eSx60=' devtools: 'unsafe-eval'; style-src 'unsafe-inline'; img-src devtools:;`
-				: `default-src 'none'; connect-src ${SERVER_ADDRESS} ${SERVER_ADDRESS.replace('http', 'ws')}; script-src ${SERVER_ADDRESS}`;
+			const csp = makeCSP({ isDevelopment: IS_DEVELOPMENT, serverOrigin: SERVER_ADDRESS });
 			callback({
 				responseHeaders: {
 					...details.responseHeaders,
@@ -97,9 +95,4 @@ function start(config) {
 	});
 }
 
-const buildForWeb = require('./build');
-
-module.exports = {
-	start,
-	buildForWeb,
-};
+module.exports = { start };

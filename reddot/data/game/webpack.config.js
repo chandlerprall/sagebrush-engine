@@ -1,8 +1,12 @@
 const { join } = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 
+const IS_DEVELOPMENT = false;
+
 module.exports = {
-	mode: 'development',
+	mode: IS_DEVELOPMENT ? 'development' : 'production',
+
+	devtool: IS_DEVELOPMENT ? 'eval' : false,
 
 	context: join(__dirname, 'src'),
 

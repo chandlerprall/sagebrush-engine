@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "webpack -w",
+    "build": "webpack",
     "build-types": "tsc"
   },
   "dependencies": {
