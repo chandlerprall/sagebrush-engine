@@ -99,6 +99,7 @@ function Game({ setResource, useResource, app, plugin }: PluginFunctions<'reddot
 				left: ${dot.left}px;
 				height: 12px;
 				width: 12px;
+				padding: 0;
 				background-color: red;
 				border-radius: 50px;
 				cursor: pointer;
