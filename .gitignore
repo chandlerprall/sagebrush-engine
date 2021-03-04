@@ -1,4 +1,6 @@
 .idea
 node_modules
 build
+dist
+webbuild
 yarn-error.log
