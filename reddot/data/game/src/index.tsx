@@ -7,10 +7,10 @@ import GameScreen from './screens/GameScreen';
 import { Button } from './Button';
 import createPosition from './createPosition';
 
-window.registerPlugin('reddot-game', function initPlugin(options) {
+window.registerPlugin('game', function initPlugin(options) {
 	const { log, onGetSaveData, onFromSaveData, onGetConfigData, onFromConfigData, app, plugin, getResource, setResource } = options;
 
-	const defaultConfig: App.Plugins['reddot-game']['config'] = { highscore: 0 };
+	const defaultConfig: App.Plugins['game']['config'] = { highscore: 0 };
 
 	log.enabled = true;
 	log.level = 'debug';

@@ -45,28 +45,28 @@ export function startServer(config: StartServerConfig) {
 						pluginsReloadTimeout = undefined;
 						const foundPlugins = new Set<string>();
 						for (let i = 0; i < pluginsToReload.length; i++) {
-							const packagePath = pluginsToReload[i];
-							if (foundPlugins.has(packagePath) === false) {
-								foundPlugins.add(packagePath);
+							const manifestPath = pluginsToReload[i];
+							if (foundPlugins.has(manifestPath) === false) {
+								foundPlugins.add(manifestPath);
 								client.send({
 									type: 'RELOAD_PLUGIN',
-									payload: await discoverPlugin(pluginDirectory, packagePath),
+									payload: await discoverPlugin(pluginDirectory, manifestPath),
 								});
 							}
 						}
 						pluginsToReload.length = 0;
 					}
 
-					function schedulePluginReload(packagePath: string) {
-						pluginsToReload.push(packagePath);
+					function schedulePluginReload(manifestPath: string) {
+						pluginsToReload.push(manifestPath);
 						if (pluginsReloadTimeout === undefined) {
 							pluginsReloadTimeout = setTimeout(performPluginsReload, 1000);
 						}
 					}
 
 					function reloadPlugin(path: string) {
-						const packagePath = join(findup.sync(path, 'package.json'), 'package.json');
-						schedulePluginReload(packagePath);
+						const manifestPath = join(findup.sync(path, 'manifest.json'), 'manifest.json');
+						schedulePluginReload(manifestPath);
 					}
 
 					const pluginWatcher = chokidar.watch(

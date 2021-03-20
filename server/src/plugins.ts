@@ -28,26 +28,26 @@ function isPackageDetails(x: any): x is PackageDetails {
 export async function discoverPlugins(pluginDirectory: string): Promise<PackageDetails[]> {
 	return new Promise((resolve, reject) => {
 		glob(
-			'*/package.json',
+			'*/manifest.json',
 			{
 				cwd: pluginDirectory,
 				realpath: true,
 			},
-			async (error, packageLocations) => {
+			async (error, manifestLocations) => {
 				if (error) {
 					reject(error);
 				} else {
-					const packagePromises: Array<Promise<PackageDetails>> = [];
-					for (let i = 0; i < packageLocations.length; i++) {
-						const packageLocation = packageLocations[i];
-						packagePromises.push(discoverPlugin(pluginDirectory, packageLocation));
+					const manifestPromises: Array<Promise<PackageDetails>> = [];
+					for (let i = 0; i < manifestLocations.length; i++) {
+						const manifestLocation = manifestLocations[i];
+						manifestPromises.push(discoverPlugin(pluginDirectory, manifestLocation));
 					}
 
-					const plugins = await Promise.all(packagePromises);
+					const plugins = await Promise.all(manifestPromises);
 
 					const pluginDirsToWatch: string[] = [];
-					for (let i = 0; i < packageLocations.length; i++) {
-						pluginDirsToWatch.push(dirname(packageLocations[i]));
+					for (let i = 0; i < manifestLocations.length; i++) {
+						pluginDirsToWatch.push(dirname(manifestLocations[i]));
 					}
 
 					// resolve dependency load order
@@ -76,21 +76,21 @@ export async function discoverPlugins(pluginDirectory: string): Promise<PackageD
 	});
 }
 
-export async function discoverPlugin(pluginDirectory: string, packageLocation: string): Promise<PackageDetails> {
+export async function discoverPlugin(pluginDirectory: string, manifestLocation: string): Promise<PackageDetails> {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const packageDetails = json.parse(await readFile(packageLocation, 'utf8'));
-			if (isPackageDetails(packageDetails) === false) {
-				throw new Error(`File at ${packageLocation} is not valid json5`);
+			const manifestDetails = json.parse(await readFile(manifestLocation, 'utf8'));
+			if (isPackageDetails(manifestDetails) === false) {
+				throw new Error(`File at ${manifestLocation} is not valid json5`);
 			}
-			const { name, version, description, pluginDependencies } = packageDetails;
-			const packageDirectory = dirname(packageLocation);
+			const { name, version, description, dependencies } = manifestDetails;
+			const manifestDirectory = dirname(manifestLocation);
 
 			// resolve entry if it points at a directory
 
-			const entry = join('plugins', relative(pluginDirectory, join(packageDirectory, 'index.js'))).replace(/\\/g, '/');
+			const entry = join('plugins', relative(pluginDirectory, join(manifestDirectory, 'index.js'))).replace(/\\/g, '/');
 
-			resolve({ name, version, description, entry, directory: packageDirectory, dependencies: Object.keys(pluginDependencies || {}) });
+			resolve({ name, version, description, entry, directory: manifestDirectory, dependencies: Object.keys(dependencies || {}) });
 		} catch(e) {
 			reject(e);
 		}

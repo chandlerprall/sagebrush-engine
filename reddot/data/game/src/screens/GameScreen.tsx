@@ -21,7 +21,7 @@ to {
 }
 `;
 
-function Game({ setResource, useResource, app, plugin }: PluginFunctions<'reddot'>) {
+function Game({ setResource, useResource, app, plugin }: PluginFunctions<'game'>) {
 	const { isGameOver, gametype, dot, score, secondsRemaining } = useResource(plugin.game);
 
 	useEffect(() => {
@@ -154,7 +154,7 @@ function Game({ setResource, useResource, app, plugin }: PluginFunctions<'reddot
 	);
 }
 
-export default (fns: PluginFunctions<'reddot'>) => function GameScreen() {
+export default (fns: PluginFunctions<'game'>) => function GameScreen() {
 	const { useResource, app } = fns;
 	const isLoadingSave = useResource(app.isLoadingSave);
 

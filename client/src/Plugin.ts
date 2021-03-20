@@ -5,12 +5,14 @@ import {
 	setResource,
 	app,
 	Accessor,
-	makeAccessor, Eventable,
+	makeAccessor,
+	Eventable,
+	storeKeyMap,
 } from './state';
 import Log from './Log';
 import { getPlugin } from './plugins';
 
-export type SaveableData = Object | Array<any>;
+export type SaveableData = any;
 
 declare global {
 	namespace App {
@@ -67,6 +69,8 @@ export default class Plugin<PluginName extends string> {
 		this.log = new Log(`Plugin(${this.name})`);
 
 		this.store = new Store<App.Plugins[PluginName]>({});
+		storeKeyMap.set(this.store, this.name);
+
 		this.accessor = makeAccessor<App.Plugins[PluginName], App.Events[PluginName]>(this.store) as any;
 
 		this.isLoaded = false;

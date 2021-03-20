@@ -1,0 +1,9 @@
+{
+  "name": "core",
+  "description": "Core system for snack shack",
+  "version": "0.0.0-alpha",
+  "dependencies": {
+    "ui": "0.0.0-alpha",
+    "screensize": "0.0.0-alpha"
+  }
+}

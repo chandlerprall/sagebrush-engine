@@ -1,5 +1,5 @@
 import Store from 'insula';
-import { ComponentType, useEffect, useState } from 'react';
+import { ComponentType, useCallback, useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import MainScreen from './MainScreen';
 import Plugin from './Plugin';
@@ -8,7 +8,7 @@ type Saves = Array<{ id: string, meta: any }>
 
 interface AppShape {
 	isLoadingSave: boolean;
-	currentScreen: Accessor<ComponentType>;
+	currentScreen: ComponentType;
 
 	screens: {
 		loading: ComponentType;
@@ -31,6 +31,8 @@ declare global {
 	}
 }
 
+export const storeKeyMap = new WeakMap<Store<unknown>, string>();
+
 export const appStore = new Store<AppShape>({
 	isLoadingSave: false,
 	currentScreen: undefined as any, // fulfilled after `state` accessor is created below
@@ -47,6 +49,7 @@ export const appStore = new Store<AppShape>({
 
 	saves: [],
 });
+storeKeyMap.set(appStore, 'app');
 
 type primitive = string | number | boolean | undefined | null;
 
@@ -97,19 +100,6 @@ type TypeFromAccessor<T> = T extends primitive
 				: never
 ;
 
-type SetTypeFromAccessor<T> = T extends primitive
-  ? T
-	: T extends Array<any>
-		? T
-		: T extends Undefined<infer U>
-			? U
-			: T extends Accessor<infer Shape, infer ForceOptional>
-				? ForceOptional extends true
-					? Shape | undefined
-					: Shape
-				: never
-;
-
 export type Eventable<Events> = {
 	dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
 	onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
@@ -141,20 +131,30 @@ export function makeAccessor<Shape, Events>(store: Store<Shape>, path: string[] 
 	) as any;
 }
 
-function resolvePossiblePointer<T>(accessor: T): { store: Store<unknown>, selector: string[] } {
+function resolvePossiblePointer<T>(accessor: T): Array<{ store: Store<unknown>, selector: string[] }> {
 	let store: Store<unknown> = (accessor as any).__store;
 	let selector: string[] = (accessor as any).__path;
 
-	const _value = store.getPartialState(selector);
-	if (_value != null && typeof _value === 'object') {
-		if (_value.__store && _value.__path) {
-			accessor = _value;
-			store = (accessor as any).__store;
-			selector = (accessor as any).__path;
+	const pointers: Array<{ store: Store<unknown>, selector: string[] }> = [{ store, selector }];
+
+	while (true) {
+		const _value = store.getPartialState(selector);
+		if (_value != null && typeof _value === 'object') {
+			if (_value.__store && _value.__path) {
+				accessor = _value;
+				store = (accessor as any).__store;
+				selector = (accessor as any).__path;
+				pointers.push({ store, selector });
+			} else {
+				break;
+			}
+		} else {
+			break;
 		}
 	}
 
-	return { store, selector };
+	pointers.reverse();
+	return pointers;
 }
 
 // React will throw away a setState operation if the same object/array is passed
@@ -165,37 +165,42 @@ function makeUnused(value: any) {
 	return value;
 }
 
-export function useResource<T>(accessor: T): TypeFromAccessor<T> {
-	const rawSelector: string[] = (accessor as any).__path;
-	const rawStore: Store<unknown> = (accessor as any).__store;
-	const [resolvedSelector, setResolvedSelector] = useState(() => resolvePossiblePointer(accessor));
+function makeKeyFromResources(resources: Array<{ store: Store<unknown>, selector: string[] }>): string {
+	let key = '';
+	for (let i = 0; i < resources.length; i++) {
+		const { store, selector } = resources[i];
+		key += `:${storeKeyMap.get(store)}.${selector.join('.')}`;
+	}
+	return key;
+}
 
-	const [value, setValue] = useState(() => resolvedSelector.store.getPartialState(resolvedSelector.selector));
+export function useResource<T>(accessor: T): TypeFromAccessor<T> {
+	const resources = resolvePossiblePointer(accessor);
+	const [value, _setValue] = useState(() => resources[0].store.getPartialState(resources[0].selector));
+	const setValue = useCallback(value => _setValue(() => makeUnused(value)), []);
+
+	const [key, setKey] = useState(() => makeKeyFromResources(resources));
 
 	useEffect(() => {
 		// it's possible for a value to have changed between the initial render and this useEffect firing
-		const currentValue = resolvedSelector.store.getPartialState(resolvedSelector.selector);
-		setValue(() => makeUnused(currentValue));
+		const currentValue = resources[0].store.getPartialState(resources[0].selector);
+		setValue(currentValue);
 
-		const subscriptions: Function[] = [];
+		const subscriptions: Array<() => void> = [];
 
-		if (rawSelector.join() === resolvedSelector.selector.join()) {
-			subscriptions.push(resolvedSelector.store.subscribeToState([rawSelector], ([value]) => {
-				setValue(() => makeUnused(value));
-			}));
-		} else {
-			// watch pointer & the resolved location
-			subscriptions.push(
-				rawStore.subscribeToState([rawSelector], ([accessor]) => {
-					setResolvedSelector({
-						store: (accessor as any).__store,
-						selector: (accessor as any).__path,
-					});
-				}),
-				resolvedSelector.store.subscribeToState([resolvedSelector.selector], ([value]) => {
-					setValue(() => value);
-				})
+		for (let i = 0; i < resources.length; i++) {
+			const { store, selector } = resources[i];
+			const subscription = store.subscribeToState(
+				[selector],
+				i === 0
+				? ([value]) => {
+						setValue(value);
+					}
+				: () => {
+						setKey(makeKeyFromResources(resolvePossiblePointer(accessor)));
+					}
 			);
+			subscriptions.push(subscription);
 		}
 
 		return () => {
@@ -203,18 +208,18 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 				subscriptions[i]();
 			}
 		}
-	}, [rawSelector.join(), resolvedSelector.selector.join()]);
+	}, [(accessor as any).__store, (accessor as any).__path.join('.'), key]);
 
 	return value;
 }
 
 export function getResource<T>(accessor: T): TypeFromAccessor<T> {
 	const resolved = resolvePossiblePointer(accessor);
-	const { store, selector } = resolved;
+	const { store, selector } = resolved[0];
 	return store.getPartialState(selector);
 }
 
-export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>) {
+export function setResource<T>(accessor: T, value: TypeFromAccessor<T> | T) {
 	const store: Store<any> = (accessor as any).__store;
 	const selector: string[] = (accessor as any).__path;
 	store.setPartialState(selector, value);

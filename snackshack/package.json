@@ -1,0 +1,11 @@
+{
+  "name": "snackshack",
+  "private": true,
+  "version": "0.0.0-alpha",
+  "main": "index.js",
+  "license": "private",
+  "scripts": {
+    "start": "electron .",
+    "build-for-web": "node build"
+  }
+}

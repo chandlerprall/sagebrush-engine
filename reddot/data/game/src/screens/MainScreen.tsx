@@ -3,16 +3,15 @@ import { css } from '@emotion/react';
 import { PluginFunctions } from 'Plugin';
 import { formatSeconds } from './GameScreen';
 
-export default ({ useResource, app, plugin }: PluginFunctions<'reddot'>) => function MainScreen() {
+export default ({ useResource, app, plugin }: PluginFunctions<'game'>) => function MainScreen() {
 	useEffect(() => {
 		app.dispatchEvent('GET_SAVES', null);
-		app.dispatchEvent('LOAD_CONFIG', null);
 	}, []);
 
 	const Button = useResource(plugin.components.button);
 
 	const saves = useResource(app.saves);
-	const save: undefined | { id: string, meta: App.Plugins['reddot']['game'] } = saves[0];
+	const save: undefined | { id: string, meta: App.Plugins['game']['game'] } = saves[0];
 
 	const highscore = useResource(plugin.config.highscore);
 

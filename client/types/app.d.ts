@@ -36,7 +36,7 @@ declare module "state" {
     }>;
     interface AppShape {
         isLoadingSave: boolean;
-        currentScreen: Accessor<ComponentType>;
+        currentScreen: ComponentType;
         screens: {
             loading: ComponentType;
             main: ComponentType;
@@ -54,6 +54,7 @@ declare module "state" {
             }
         }
     }
+    export const storeKeyMap: WeakMap<Store<unknown>, string>;
     export const appStore: Store<AppShape>;
     type primitive = string | number | boolean | undefined | null;
     class Undefined<T> {
@@ -67,7 +68,6 @@ declare module "state" {
         [key in keyof Shape]-?: Shape[key] extends primitive ? key extends RequiredKeys<Shape> ? ForceOptional extends false ? Shape[key] : Shape[key] | undefined : Undefined<Shape[key]> : Shape[key] extends Array<infer Members> ? ForceOptional extends false ? Array<Members> : Array<Members> | undefined : key extends RequiredKeys<Shape> ? Accessor<Shape[key], ForceOptional> : Accessor<Shape[key], true>;
     };
     type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? ForceOptional extends true ? SubShape | undefined : SubShape : ForceOptional extends true ? Shape | undefined : Shape : never;
-    type SetTypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? ForceOptional extends true ? Shape | undefined : Shape : never;
     export type Eventable<Events> = {
         dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
         onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
@@ -76,12 +76,12 @@ declare module "state" {
     export function makeAccessor<Shape, Events>(store: Store<Shape>, path?: string[]): Accessor<Shape> & Eventable<Events>;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
-    export function setResource<T>(accessor: T, value: SetTypeFromAccessor<T>): void;
+    export function setResource<T>(accessor: T, value: TypeFromAccessor<T> | T): void;
     export const app: Accessor<AppShape, false> & Eventable<{
         EXIT: null;
         SAVE: {
             id: string;
-            meta: import("Plugin").SaveableData;
+            meta: any;
         };
         GET_SAVES: null;
         LOAD_SAVE: {
@@ -170,13 +170,13 @@ declare module "plugins" {
     }
     export function getPlugin<PluginName extends string, ReturnType = Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>>(pluginName: PluginName): ReturnType;
     export function collectPluginSaveData(): {
-        [key: string]: SaveableData;
+        [key: string]: any;
     };
     export function setPluginSaveData(data: {
         [key: string]: SaveableData;
     }): void;
     export function collectPluginConfigData(): {
-        [key: string]: SaveableData;
+        [key: string]: any;
     };
     export function setPluginConfigData(data: {
         [key: string]: SaveableData;
@@ -185,7 +185,7 @@ declare module "plugins" {
 declare module "Plugin" {
     import { getResource, useResource, setResource, app, Accessor, Eventable } from "state";
     import Log from "Log";
-    export type SaveableData = Object | Array<any>;
+    export type SaveableData = any;
     global {
         namespace App {
             interface Plugins {

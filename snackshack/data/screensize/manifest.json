@@ -1,0 +1,5 @@
+{
+  "name": "screensize",
+  "description": "Saves & restores window size",
+  "version": "0.0.0-alpha"
+}
