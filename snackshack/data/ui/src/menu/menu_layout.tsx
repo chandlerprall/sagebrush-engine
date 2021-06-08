@@ -1,21 +1,28 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { css } from '@emotion/react';
 import { PluginFunctions } from 'Plugin';
 
-export default ({ getResource, plugin }: PluginFunctions<'ui'>) => () => {
-	const buttons = getResource(plugin.menu.buttons);
-	const Button = getResource(plugin.button);
+export default ({ useResource, plugin }: PluginFunctions<'ui'>) => () => {
+	const buttons = useResource(plugin.menu.buttons);
+	const Button = useResource(plugin.button);
 
+	const buttonIds = Object.keys(buttons);
 	return (
 		<div css={css`
-		position: absolute;
-		bottom: 50px;
-		left: 50%;
-		transform: translateX(-50%);
-	`}>
+			position: absolute;
+			top: 25%;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+		`}>
 			{
-				buttons.map((button, idx) => (
-					<Button key={idx} {...button} />
+				buttonIds.map(id => (
+					<Fragment key={id}>
+						<Button {...buttons[id]} css={css`
+							margin-bottom: 10px;
+						`} />
+						<br/>
+					</Fragment>
 				))
 			}
 		</div>

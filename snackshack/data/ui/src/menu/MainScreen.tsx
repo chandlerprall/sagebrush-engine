@@ -1,10 +1,10 @@
 import React from 'react';
 import { PluginFunctions } from 'Plugin';
 
-export default ({ getResource, plugin }: PluginFunctions<'ui'>) => {
+export default ({ useResource, plugin }: PluginFunctions<'ui'>) => {
 	return () => {
-		const MenuTitle = getResource(plugin.menu.title);
-		const MenuLayout = getResource(plugin.menu.layout);
+		const MenuTitle = useResource(plugin.menu.title);
+		const MenuLayout = useResource(plugin.menu.layout);
 
 		return (
 			<>

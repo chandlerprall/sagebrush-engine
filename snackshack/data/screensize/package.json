@@ -3,6 +3,7 @@
   "description": "Core functionality for snack shack",
   "version": "0.0.0-alpha",
   "private": true,
+  "license": "OSL-3.0",
   "scripts": {
     "dev": "webpack -w",
     "build": "webpack",
