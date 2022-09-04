@@ -1,3 +1,5 @@
+/// <reference types="./app" />
+
 declare module 'insula' {
 	export default class Store<Shape> {
 		constructor(data: Shape);
@@ -12,4 +14,8 @@ declare module 'insula' {
 		on(event: string, callback: (payload: any, fns: { dispatch: Store<Shape>['dispatch'], getState: Store<Shape>['getState'], getPartialState: Store<Shape>['getPartialState'], setState: Store<Shape>['setState'], setPartialState: Store<Shape>['setPartialState'] }) => void): void;
 		off(event: string, callback: (payload: any, fns: { dispatch: Store<Shape>['dispatch'], getState: Store<Shape>['getState'], getPartialState: Store<Shape>['getPartialState'], setState: Store<Shape>['setState'], setPartialState: Store<Shape>['setPartialState'] }) => void): void;
 	}
+}
+
+declare module '@sagebrush/engine-client' {
+	export { getPlugin, registerPlugin } from 'plugins';
 }

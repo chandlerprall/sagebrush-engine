@@ -5,7 +5,7 @@ const { startServer } = require('@sagebrush/engine-server');
 const makeCSP = require('./csp');
 
 function start(config) {
-	const { indexFileLocation, pluginDirectory, getBrowserWindowConfig, onWindowLoad } = config;
+	const { indexFileLocation, pluginDirectory, getBrowserWindowConfig, onWindowLoad, modifyCSP } = config;
 	const serverConfig = { indexFileLocation, pluginDirectory };
 
 	const IS_DEVELOPMENT = true;
@@ -33,7 +33,9 @@ function start(config) {
 			});
 
 		session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-			const csp = makeCSP({ isDevelopment: IS_DEVELOPMENT, serverOrigin: SERVER_ADDRESS });
+			const cspConfig = { isDevelopment: IS_DEVELOPMENT, serverOrigin: SERVER_ADDRESS };
+			let csp = makeCSP(cspConfig);
+			if (modifyCSP) csp = modifyCSP(csp, cspConfig);
 			callback({
 				responseHeaders: {
 					...details.responseHeaders,

@@ -1,8 +1,8 @@
 {
   "name": "@sagebrush/engine-client",
-  "version": "0.0.0-alpha",
-  "license": "private",
-  "private": true,
+  "version": "0.0.0-alpha-7",
+  "license": "OSL-3.0",
+  "main": "build/app.js",
   "scripts": {
     "build-types": "tsc",
     "build": "webpack -c ./webpack.config.js",
@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@emotion/react": "^11.1.4",
-    "insula": "^2.0.2",
+    "insula": "^2.0.3",
     "socket.io-client": "^3.0.4"
   }
 }

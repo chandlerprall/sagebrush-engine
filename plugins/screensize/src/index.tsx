@@ -1,12 +1,14 @@
 /// <reference types="@sagebrush/engine-client/types/insula" />
 /// <reference types="@sagebrush/engine-client/types/app" />
 
+import { registerPlugin } from '@sagebrush/engine-client';
+
 interface ConfigShape {
 	height: number;
 	width: number;
 }
 
-window.registerPlugin('screensize', function initPlugin(options) {
+registerPlugin('screensize', function initPlugin(options) {
 	const { log, getResource, setResource, app, plugin, onGetConfigData, onFromConfigData } = options;
 
 	setResource(plugin.debounceTimeout, 500);
@@ -37,7 +39,7 @@ window.registerPlugin('screensize', function initPlugin(options) {
 		if (saveConfigTimeout != null) {
 			clearTimeout(saveConfigTimeout);
 		}
-		saveConfigTimeout = setTimeout(applyConfig, getResource(plugin.debounceTimeout) as number | undefined);
+		saveConfigTimeout = window.setTimeout(applyConfig, getResource(plugin.debounceTimeout));
 	};
 	window.addEventListener('resize', listener);
 	return () => {

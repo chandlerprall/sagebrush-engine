@@ -10,7 +10,7 @@ const babelConfig = {
 		],
 		[
 			'@babel/preset-env',
-			{ targets: { chrome: '87' } }
+			{ targets: { chrome: '87' }, modules: false }
 		],
 	],
 	plugins: [
@@ -30,7 +30,7 @@ module.exports = {
 
 	output: {
 		path: outDir,
-		filename: 'app.js'
+		filename: 'app.js',
 	},
 
 	resolve: {

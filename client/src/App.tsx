@@ -8,7 +8,12 @@ export default function App() {
 	}, []);
 
 	const Screen = useResource(app.currentScreen);
+	const Global = useResource(app.globalNode);
+	const isLoading = Screen === useResource(app.screens.loading);
 	return (
-		<Screen />
+		<>
+			<Screen />
+			{isLoading === false && Global}
+		</>
 	);
 }

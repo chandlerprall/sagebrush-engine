@@ -28,7 +28,7 @@ declare module "MainScreen" {
 }
 declare module "state" {
     import Store from 'insula';
-    import { ComponentType } from 'react';
+    import { ComponentType, ReactNode } from 'react';
     import Plugin from "Plugin";
     type Saves = Array<{
         id: string;
@@ -36,7 +36,9 @@ declare module "state" {
     }>;
     interface AppShape {
         isLoadingSave: boolean;
+        loadingError?: string;
         currentScreen: ComponentType;
+        globalNode?: ReactNode;
         screens: {
             loading: ComponentType;
             main: ComponentType;
@@ -67,15 +69,18 @@ declare module "state" {
     export type Accessor<Shape, ForceOptional = false> = {
         [key in keyof Shape]-?: Shape[key] extends primitive ? key extends RequiredKeys<Shape> ? ForceOptional extends false ? Shape[key] : Shape[key] | undefined : Undefined<Shape[key]> : Shape[key] extends Array<infer Members> ? ForceOptional extends false ? Array<Members> : Array<Members> | undefined : key extends RequiredKeys<Shape> ? Accessor<Shape[key], ForceOptional> : Accessor<Shape[key], true>;
     };
-    type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? ForceOptional extends true ? SubShape | undefined : SubShape : ForceOptional extends true ? Shape | undefined : Shape : never;
+    type HandleOptionality<T, ForceOptional> = ForceOptional extends true ? T | undefined : T;
+    type TypeFromAccessor<T> = T extends primitive ? T : T extends Array<any> ? T : T extends Undefined<infer U> ? U : T extends Accessor<infer Shape, infer ForceOptional> ? Shape extends Accessor<infer SubShape> ? SubShape extends unknown ? HandleOptionality<Shape, ForceOptional> : HandleOptionality<SubShape, ForceOptional> : HandleOptionality<Shape, ForceOptional> : never;
     export type Eventable<Events> = {
         dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
         onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+        onceEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
         offEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
     };
     export function makeAccessor<Shape, Events>(store: Store<Shape>, path?: string[]): Accessor<Shape> & Eventable<Events>;
     export function useResource<T>(accessor: T): TypeFromAccessor<T>;
     export function getResource<T>(accessor: T): TypeFromAccessor<T>;
+    export function subscribeToResource<T>(accessor: T, listener: (value: [TypeFromAccessor<T>]) => void, callImmediately?: boolean): () => void;
     export function setResource<T>(accessor: T, value: TypeFromAccessor<T> | T): void;
     export const app: Accessor<AppShape, false> & Eventable<{
         EXIT: null;
@@ -163,11 +168,7 @@ declare module "plugins" {
             }
         }
     }
-    global {
-        interface Window {
-            registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>): void | Promise<void>;
-        }
-    }
+    export const registerPlugin: <PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>) => void | Promise<void>;
     export function getPlugin<PluginName extends string, ReturnType = Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>>(pluginName: PluginName): ReturnType;
     export function collectPluginSaveData(): {
         [key: string]: any;
@@ -183,7 +184,7 @@ declare module "plugins" {
     }): void;
 }
 declare module "Plugin" {
-    import { getResource, useResource, setResource, app, Accessor, Eventable } from "state";
+    import { getResource, useResource, setResource, subscribeToResource, app, Accessor, Eventable } from "state";
     import Log from "Log";
     export type SaveableData = any;
     global {
@@ -203,11 +204,14 @@ declare module "Plugin" {
         useResource: typeof useResource;
         getResource: typeof getResource;
         setResource: typeof setResource;
+        subscribeToResource: typeof subscribeToResource;
         onGetSaveData: (fn: () => SaveableData) => void;
         onFromSaveData: (fn: (data: SaveableData) => void) => void;
         onGetConfigData: (fn: () => SaveableData) => void;
         onFromConfigData: (fn: (data: SaveableData) => void) => void;
         log: Log;
+        devData: any;
+        onDevReload: (fn: () => any) => void;
     }
     export default class Plugin<PluginName extends string> {
         name: PluginName;
@@ -218,8 +222,11 @@ declare module "Plugin" {
         fromSaveData: ((data: SaveableData) => void) | undefined;
         getConfigData: (() => SaveableData) | undefined;
         fromConfigData: ((data: SaveableData) => void) | undefined;
+        private getDevData;
+        private devData;
         private log;
         private eventSubscriptions;
+        private resourceSubscriptions;
         private store;
         accessor: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
         initializer?: (args: PluginFunctions<PluginName>) => void | (() => void);
@@ -232,6 +239,8 @@ declare module "Plugin" {
         private setOnFromSaveData;
         private setOnGetConfigData;
         private setOnFromConfigData;
+        private subscribeToResource;
+        private setOnDevReload;
         load(): Promise<undefined | Event | string>;
         initialize(): Promise<any>;
         deinitialize(): void;
@@ -275,11 +284,18 @@ declare module "App" {
     export default function App(): JSX.Element;
 }
 declare module "index" {
+    import * as EmotionReact from '@emotion/react';
     import * as EmotionReactJsxRuntime from '@emotion/react/jsx-runtime';
     import "events";
+    import { getPlugin, registerPlugin } from "plugins";
     global {
         interface Window {
+            EmotionReact: typeof EmotionReact;
             EmotionReactJsxRuntime: typeof EmotionReactJsxRuntime;
+            SagebrushEngineClient: {
+                getPlugin: typeof getPlugin;
+                registerPlugin: typeof registerPlugin;
+            };
         }
     }
 }

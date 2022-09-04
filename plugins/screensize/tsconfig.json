@@ -12,6 +12,5 @@
     "esModuleInterop": true,
     "jsx": "react"
   },
-  "include": ["**/*.ts", "**/*.tsx", "../screensize/dist/plugin.d.ts"],
-  "exclude": ["**/dist/*"]
+  "include": ["**/*.ts", "**/*.tsx"]
 }

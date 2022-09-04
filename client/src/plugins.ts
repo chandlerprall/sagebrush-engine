@@ -16,13 +16,9 @@ declare global {
 	}
 }
 
-declare global {
-	interface Window {
-		registerPlugin<PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>): void | Promise<void>;
-	}
-}
 const plugins = new Map<string, Plugin<string>>();
-window.registerPlugin = (name, initializer) => {
+
+export const registerPlugin = <PluginName extends string>(name: PluginName, initializer: (arg: PluginFunctions<PluginName>) => void | (() => void) | Promise<void> | Promise<() => void>): void | Promise<void> => {
 	const plugin = plugins.get(name);
 	if (plugin == null) {
 		log.error(`No matching plugin for "${name}" orchestration`);
@@ -94,15 +90,12 @@ app.onEvent('LOAD_PLUGINS', () => {
 		offMessage('DISCOVER_PLUGINS_RESULT', onDiscoverPluginsResult);
 		setResource(app.plugins.discovered, discoveredPlugins);
 
-		const pluginLoadPromises: Promise<any>[] = [];
 		for (let i = 0; i < discoveredPlugins.length; i++) {
 			const pluginDef = discoveredPlugins[i];
 			const plugin = new Plugin(pluginDef);
 			plugins.set(pluginDef.name, plugin);
-			pluginLoadPromises.push(plugin.loadingPromise);
+			await plugin.loadingPromise;
 		}
-
-		await Promise.all(pluginLoadPromises);
 
 		app.dispatchEvent('INITIALIZE_PLUGINS', null);
 	};
@@ -119,16 +112,20 @@ app.onEvent('PLUGIN_LOADED', plugin => {
 app.onEvent('INITIALIZE_PLUGINS', async () => {
 	const discoveredPlugins = getResource(app.plugins.discovered);
 
-	for (let i = 0; i < discoveredPlugins.length; i++) {
-		const pluginDefinition = discoveredPlugins[i];
-		const plugin = plugins.get(pluginDefinition.name)!;
-		await plugin.initialize();
-		app.dispatchEvent('PLUGIN_LOADED', plugin);
-	}
+	try {
+		for (let i = 0; i < discoveredPlugins.length; i++) {
+			const pluginDefinition = discoveredPlugins[i];
+			const plugin = plugins.get(pluginDefinition.name)!;
+			await plugin.initialize();
+			app.dispatchEvent('PLUGIN_LOADED', plugin);
+		}
 
-	log.info('plugins initialized');
-	app.dispatchEvent('LOAD_CONFIG', null);
-	setResource(app.currentScreen, app.screens.main);
+		log.info('plugins initialized');
+		app.dispatchEvent('LOAD_CONFIG', null);
+		setResource(app.currentScreen, app.screens.main);
+	} catch (e) {
+		setResource(app.loadingError, (e as Error).toString());
+	}
 });
 
 onMessage('RELOAD_PLUGIN', async (pluginDef) => {

@@ -3,7 +3,8 @@
   "description": "Core system for snack shack",
   "version": "0.0.0-alpha",
   "dependencies": {
-    "ui": "0.0.0-alpha",
-    "screensize": "0.0.0-alpha"
+    "screensize": "0.0.0-alpha",
+    "threejs": "0.0.0-alpha",
+    "ui": "0.0.0-alpha"
   }
 }

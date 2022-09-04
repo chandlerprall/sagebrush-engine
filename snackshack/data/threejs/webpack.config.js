@@ -25,7 +25,6 @@ module.exports = {
 		react: 'React',
 		'react-dom': 'ReactDOM',
 		'@emotion/react/jsx-runtime': 'EmotionReactJsxRuntime',
-		'three': 'Three',
 	},
 
 	module: {
@@ -55,13 +54,5 @@ module.exports = {
 				}
 			}
 		]
-	},
-
-	plugins: [
-		new CopyPlugin({
-			patterns: [
-				{ from: join(__dirname, 'src', 'plugin.d.ts'), to: 'plugin.d.ts' },
-			],
-		}),
-	],
+	}
 };

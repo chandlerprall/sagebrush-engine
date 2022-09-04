@@ -1,8 +1,7 @@
 {
-  "name": "snackshack-core",
-  "description": "Core system for snack shack",
-  "version": "0.0.0-alpha",
-  "private": true,
+  "name": "@sagebrush/plugin-screensize",
+  "description": "Records what size the window is resized to and maintains it the next time the application launches",
+  "version": "1.0.0",
   "license": "OSL-3.0",
   "scripts": {
     "dev": "webpack -w",
@@ -17,7 +16,6 @@
     "@babel/preset-env": "^7.12.11",
     "@babel/preset-react": "^7.12.10",
     "@emotion/react": "^11.1.5",
-    "@types/three": "^0.131.0",
     "babel-loader": "^8.2.2",
     "copy-webpack-plugin": "^7.0.0",
     "typescript": "^4.1.3",

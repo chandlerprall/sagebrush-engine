@@ -1,4 +1,11 @@
 {
   "private": true,
-  "workspaces": ["wrapper", "server", "client", "reddot", "reddot/data/game", "snackshack", "snackshack/data/core", "snackshack/data/ui", "snackshack/data/screensize"]
+  "workspaces": [
+    "wrapper",
+    "server",
+    "client",
+    "plugin-server",
+
+    "plugins/screensize"
+  ]
 }

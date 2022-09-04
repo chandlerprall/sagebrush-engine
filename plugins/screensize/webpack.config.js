@@ -25,7 +25,7 @@ module.exports = {
 		react: 'React',
 		'react-dom': 'ReactDOM',
 		'@emotion/react/jsx-runtime': 'EmotionReactJsxRuntime',
-		'three': 'Three',
+		'@sagebrush/engine-client': 'SagebrushEngineClient',
 	},
 
 	module: {

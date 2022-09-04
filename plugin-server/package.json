@@ -1,0 +1,13 @@
+{
+  "name": "@sagebrush/plugin-server",
+  "version": "0.0.0-alpha-7",
+  "license": "OSL-3.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "glob": "^7.2.0",
+    "tar": "^6.1.11"
+  }
+}

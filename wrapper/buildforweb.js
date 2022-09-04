@@ -6,7 +6,7 @@ const { discoverPlugins } = require('@sagebrush/engine-server/build/plugins');
 const makeCSP = require('./csp');
 
 async function buildForWeb(config) {
-	const { indexFileLocation, pluginDirectory, outputDir, serverOrigin } = config;
+	const { indexFileLocation, pluginDirectory, outputDir, serverOrigin, modifyCSP } = config;
 	const clientDir = join(__dirname, '..', 'client', 'build');
 
 	// array of promises to await at the end
@@ -18,7 +18,11 @@ async function buildForWeb(config) {
 	// process & write index file
 	const indexContents = await readFile(indexFileLocation, 'utf-8');
 	const indexHtml = cheerio.load(indexContents);
-	indexHtml('head').append(`<meta http-equiv="Content-Security-Policy" content="${makeCSP({ isDevelopment: false, serverOrigin })}">`);
+
+	const cspConfig = { isDevelopment: false, serverOrigin };
+	let csp = makeCSP(cspConfig);
+	if (modifyCSP) csp = modifyCSP(csp, cspConfig);
+	indexHtml('head').append(`<meta http-equiv="Content-Security-Policy" content="${csp}">`);
 	awaitables.push(writeFile(join(outputDir, 'index.html'), indexHtml.html()));
 
 	// copy client bundle

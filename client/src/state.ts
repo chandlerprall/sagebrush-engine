@@ -1,5 +1,5 @@
 import Store from 'insula';
-import { ComponentType, useCallback, useEffect, useState } from 'react';
+import { ComponentType, ReactNode, useCallback, useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import MainScreen from './MainScreen';
 import Plugin from './Plugin';
@@ -8,7 +8,10 @@ type Saves = Array<{ id: string, meta: any }>
 
 interface AppShape {
 	isLoadingSave: boolean;
+	loadingError?: string;
+
 	currentScreen: ComponentType;
+	globalNode?: ReactNode;
 
 	screens: {
 		loading: ComponentType;
@@ -35,7 +38,10 @@ export const storeKeyMap = new WeakMap<Store<unknown>, string>();
 
 export const appStore = new Store<AppShape>({
 	isLoadingSave: false,
+	loadingError: undefined,
+
 	currentScreen: undefined as any, // fulfilled after `state` accessor is created below
+	globalNode: undefined,
 
 	screens: {
 		loading: LoadingScreen,
@@ -83,26 +89,27 @@ export type Accessor<Shape, ForceOptional = false> = {
 					: Accessor<Shape[key], true> // optional
 };
 
+type HandleOptionality<T, ForceOptional> = ForceOptional extends true ? T | undefined : T;
+
 type TypeFromAccessor<T> = T extends primitive
-  ? T
+	? T
 	: T extends Array<any>
 		? T
 		: T extends Undefined<infer U>
 			? U
 			: T extends Accessor<infer Shape, infer ForceOptional>
 				? Shape extends Accessor<infer SubShape>
-					? ForceOptional extends true
-						? SubShape | undefined
-						: SubShape
-					: ForceOptional extends true
-							? Shape | undefined
-							: Shape
+					? SubShape extends unknown // TS thinks functions extend Accessor<>, but SubShape is unknown
+						? HandleOptionality<Shape, ForceOptional>
+						: HandleOptionality<SubShape, ForceOptional>
+					: HandleOptionality<Shape, ForceOptional>
 				: never
 ;
 
 export type Eventable<Events> = {
 	dispatchEvent: <Event extends keyof Events>(event: Event, payload: Events[Event]) => void;
 	onEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
+	onceEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
 	offEvent: <Event extends keyof Events>(event: Event, listener: (payload: Events[Event]) => void) => void;
 };
 
@@ -112,6 +119,13 @@ export function makeAccessor<Shape, Events>(store: Store<Shape>, path: string[] 
 	}
 	function onEvent(event: string, listener: (payload: any) => void) {
 		return store.on(event, listener);
+	}
+	function onceEvent(event: string, listener: (...payload: any) => void) {
+		const wrappedListener = (...args: any[]) => {
+			store.off(event, wrappedListener);
+			listener(...args);
+		};
+		return store.on(event, wrappedListener);
 	}
 	function offEvent(event: string, listener: (payload: any) => void) {
 		store.off(event, listener);
@@ -124,6 +138,7 @@ export function makeAccessor<Shape, Events>(store: Store<Shape>, path: string[] 
 				if (prop === '__path') return path;
 				if (prop === 'dispatchEvent') return dispatchEvent;
 				if (prop === 'onEvent') return onEvent;
+				if (prop === 'onceEvent') return onceEvent;
 				if (prop === 'offEvent') return offEvent;
 				return makeAccessor(store, [...path, prop]);
 			}
@@ -159,9 +174,10 @@ function resolvePossiblePointer<T>(accessor: T): Array<{ store: Store<unknown>, 
 
 // React will throw away a setState operation if the same object/array is passed
 // so clone objects/arrays when alerted that they have changed
+const objProto = Object.getPrototypeOf({});
 function makeUnused(value: any) {
 	if (Array.isArray(value)) return [...value];
-	if (value != null && typeof value === 'object')  return {...value};
+	if (value != null && Object.getPrototypeOf(value) === objProto) return {...value};
 	return value;
 }
 
@@ -194,11 +210,16 @@ export function useResource<T>(accessor: T): TypeFromAccessor<T> {
 				[selector],
 				i === 0
 				? ([value]) => {
+					if (typeof value === 'object' && value.__store && value.__path) {
+						const [{ store, selector }] = resolvePossiblePointer(value);
+						setValue(store.getPartialState(selector));
+					} else {
 						setValue(value);
 					}
-				: () => {
-						setKey(makeKeyFromResources(resolvePossiblePointer(accessor)));
-					}
+				}
+			: () => {
+					setKey(makeKeyFromResources(resolvePossiblePointer(accessor)));
+				}
 			);
 			subscriptions.push(subscription);
 		}
@@ -217,6 +238,20 @@ export function getResource<T>(accessor: T): TypeFromAccessor<T> {
 	const resolved = resolvePossiblePointer(accessor);
 	const { store, selector } = resolved[0];
 	return store.getPartialState(selector);
+}
+
+// @TODO: make this work with pointers
+export function subscribeToResource<T>(accessor: T, listener: (value: [TypeFromAccessor<T>]) => void, callImmediately: boolean = false): () => void {
+	const store: Store<unknown> = (accessor as any).__store;
+	const selector: string[] = (accessor as any).__path;
+
+	const unsubscribe = store.subscribeToState([selector], listener as any);
+
+	if (callImmediately) {
+		listener(store.getPartialState(selector));
+	}
+
+	return unsubscribe;
 }
 
 export function setResource<T>(accessor: T, value: TypeFromAccessor<T> | T) {

@@ -1,7 +1,7 @@
 import { app, BrowserWindowConstructorOptions } from 'electron';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { promises as fspromises } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import SocketIo from 'socket.io';
 import chokidar from 'chokidar';
 // @ts-ignore
@@ -10,7 +10,7 @@ import { discoverPlugin, discoverPlugins } from './plugins';
 
 const { readFile, open, writeFile, mkdir, readdir, stat, unlink } = fspromises;
 
-export const CLIENT_PATH = join(__dirname, '..', '..', 'client', 'build');
+export const CLIENT_PATH = dirname(require.resolve('@sagebrush/engine-client'));
 
 interface StartServerConfig {
 	indexFileLocation: string;

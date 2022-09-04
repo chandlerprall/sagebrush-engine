@@ -1,6 +1,6 @@
 {
-  "name": "snackshack-core",
-  "description": "Core system for snack shack",
+  "name": "@sagebrush/plugin-threejs",
+  "description": "threejs plugin",
   "version": "0.0.0-alpha",
   "private": true,
   "license": "OSL-3.0",
@@ -10,7 +10,9 @@
     "build-types": "tsc"
   },
   "dependencies": {
-    "@sagebrush/engine-client": "0.0.0-alpha"
+    "@sagebrush/engine-client": "0.0.0-alpha",
+    "@sagebrush/plugin-ui": "0.0.0-alpha",
+    "three": "^0.132.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",

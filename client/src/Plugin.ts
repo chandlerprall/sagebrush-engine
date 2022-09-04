@@ -3,6 +3,7 @@ import {
 	getResource,
 	useResource,
 	setResource,
+	subscribeToResource,
 	app,
 	Accessor,
 	makeAccessor,
@@ -33,11 +34,15 @@ export interface PluginFunctions<PluginName extends string> {
 	useResource: typeof useResource,
 	getResource: typeof getResource,
 	setResource: typeof setResource,
+	subscribeToResource: typeof subscribeToResource,
 	onGetSaveData: (fn: () => SaveableData) => void,
 	onFromSaveData: (fn: (data: SaveableData) => void) => void,
 	onGetConfigData: (fn: () => SaveableData) => void,
 	onFromConfigData: (fn: (data: SaveableData) => void) => void,
 	log: Log;
+
+	devData: any,
+	onDevReload: (fn: () => any) => void,
 }
 
 export default class Plugin<PluginName extends string> {
@@ -50,8 +55,12 @@ export default class Plugin<PluginName extends string> {
 	public getConfigData: (() => SaveableData) | undefined;
 	public fromConfigData: ((data: SaveableData) => void) | undefined;
 
+	private getDevData: (() => any) | undefined;
+	private devData: any;
+
 	private log: Log;
 	private eventSubscriptions: Array<[store: Store<any>, event: string, listener: Function]> = [];
+	private resourceSubscriptions: Array<() => void> = [];
 	private store: Store<App.Plugins[PluginName]>;
 	public accessor: Accessor<App.Plugins[PluginName]> & Eventable<App.Events[PluginName]>;
 
@@ -115,6 +124,22 @@ export default class Plugin<PluginName extends string> {
 		this.fromConfigData = onFromConfigData;
 	}
 
+	private subscribeToResource = <GottenPlugin extends string>(accessor: Accessor<App.Plugins[GottenPlugin]>, listener: (value: any) => void, callImmediately: boolean = false) => {
+		const unsubscribe = subscribeToResource(
+			accessor,
+			([value]) => {
+				listener(value);
+			},
+			callImmediately
+		);
+		this.resourceSubscriptions.push(unsubscribe);
+		return unsubscribe;
+	}
+
+	private setOnDevReload = (onDevReload: () => any) => {
+		this.getDevData = onDevReload;
+	}
+
 	async load(): Promise<undefined | Event | string> {
 		return new Promise((resolve, reject) => {
 			const script = document.createElement('script');
@@ -148,17 +173,28 @@ export default class Plugin<PluginName extends string> {
 				getResource,
 				setResource,
 				useResource,
+				subscribeToResource: this.subscribeToResource,
+
+				devData: this.devData,
+				onDevReload: this.setOnDevReload,
 			});
 		}
 	}
 
 	deinitialize(): void {
+		if (this.getDevData) this.devData = this.getDevData();
 		if (this.uninitializer) this.uninitializer();
 
+		// remove any event subscriptions
 		for (let i = 0; i < this.eventSubscriptions.length; i++) {
 			const [store, event, listener] = this.eventSubscriptions[i];
 			store.off(event, listener as any);
 		}
 		this.eventSubscriptions.length = 0;
+
+		// remove any resource subscriptions (via subscribeToResource, not useResource)
+		for (let i = 0; i < this.resourceSubscriptions.length; i++) {
+			this.resourceSubscriptions[i]();
+		}
 	}
 }
