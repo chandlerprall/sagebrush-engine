@@ -17,6 +17,38 @@ interface StartServerConfig {
 	pluginDirectory: string;
 	getBrowserWindowConfig: (config: BrowserWindowConstructorOptions) => BrowserWindowConstructorOptions
 }
+
+const appMessageListeners: Function[] = [];
+export function listen(listener: Function) {
+	appMessageListeners.push(listener);
+}
+export function unlisten(listener: Function) {
+	const idx = appMessageListeners.indexOf(listener);
+	if (idx !== -1) {
+		appMessageListeners.splice(idx, 1);
+	}
+}
+function forwardMessage(payload: any) {
+	for (let i = 0; i < appMessageListeners.length; i++) {
+		appMessageListeners[i](payload);
+	}
+}
+const clients: Array<SocketIo.Server> = [];
+function addClient(client: SocketIo.Server) {
+	clients.push(client);
+}
+function removeClient(client: SocketIo.Server) {
+	const idx = clients.indexOf(client);
+	if (idx !== -1) {
+		clients.splice(idx, 1);
+	}
+}
+export function broadcastMessage(payload: any) {
+	for (let i = 0; i < clients.length; i++) {
+		clients[i].send({ type: 'SERVER_MESSAGE', payload });
+	}
+}
+
 export function startServer(config: StartServerConfig) {
 	const { indexFileLocation, pluginDirectory } = config;
 
@@ -31,6 +63,7 @@ export function startServer(config: StartServerConfig) {
 		server.listen(() => resolve(server));
 
 		io.on('connection', (client: SocketIo.Server) => {
+			addClient(client);
 			client.on('message', async (data) => {
 				if (data == null || typeof data !== 'object') return;
 				const { type } = data;
@@ -150,14 +183,18 @@ export function startServer(config: StartServerConfig) {
 							type: 'LOAD_CONFIG_RESULT',
 							payload: config
 						});
-					} catch(e) {
+					} catch (e) {
 						console.error(e);
 					}
+				} else if (type === 'SERVER_MESSAGE') {
+					forwardMessage(data.payload);
 				} else if (type === 'EXIT') {
 					app.exit();
 				}
 			});
-			client.on('disconnect', () => {});
+			client.on('disconnect', () => {
+				removeClient(client);
+			});
 		});
 
 		server.on(

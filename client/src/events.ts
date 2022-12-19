@@ -18,6 +18,9 @@ declare global {
 				LOAD_PLUGINS: null;
 				PLUGIN_LOADED: Plugin<string>;
 				INITIALIZE_PLUGINS: null;
+
+				SEND_SERVER_MESSAGE: any;
+				RECEIVE_SERVER_MESSAGE: any;
 			}
 		}
 	}
@@ -69,4 +72,11 @@ app.onEvent('LOAD_CONFIG', () => {
 });
 onMessage('LOAD_CONFIG_RESULT', (data) => {
 	setPluginConfigData(data);
+});
+
+app.onEvent('SEND_SERVER_MESSAGE', payload => {
+	messageServer('SERVER_MESSAGE', payload);
+});
+onMessage('SERVER_MESSAGE', payload => {
+	app.dispatchEvent('RECEIVE_SERVER_MESSAGE', payload)
 });

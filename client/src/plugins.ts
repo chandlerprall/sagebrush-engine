@@ -119,7 +119,6 @@ app.onEvent('INITIALIZE_PLUGINS', async () => {
 			await plugin.initialize();
 			app.dispatchEvent('PLUGIN_LOADED', plugin);
 		}
-
 		log.info('plugins initialized');
 		app.dispatchEvent('LOAD_CONFIG', null);
 		setResource(app.currentScreen, app.screens.main);

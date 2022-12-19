@@ -100,6 +100,8 @@ declare module "state" {
         LOAD_PLUGINS: null;
         PLUGIN_LOADED: Plugin<string>;
         INITIALIZE_PLUGINS: null;
+        SEND_SERVER_MESSAGE: any;
+        RECEIVE_SERVER_MESSAGE: any;
     }>;
 }
 declare module "socket" {
@@ -124,6 +126,7 @@ declare module "socket" {
                     };
                     SAVE_CONFIG: SaveableData;
                     LOAD_CONFIG: null;
+                    SERVER_MESSAGE: any;
                 }
                 interface FromServer {
                     DISCOVER_PLUGINS_RESULT: {
@@ -147,6 +150,7 @@ declare module "socket" {
                             [key: string]: SaveableData;
                         };
                     };
+                    SERVER_MESSAGE: any;
                 }
             }
         }
@@ -269,6 +273,8 @@ declare module "events" {
                     LOAD_PLUGINS: null;
                     PLUGIN_LOADED: Plugin<string>;
                     INITIALIZE_PLUGINS: null;
+                    SEND_SERVER_MESSAGE: any;
+                    RECEIVE_SERVER_MESSAGE: any;
                 };
             }
         }
